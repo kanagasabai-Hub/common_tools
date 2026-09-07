@@ -8,7 +8,9 @@
      id          unique slug, also used for deep links (#id)
      name        shown on the card
      description one or two sentences, plain text
-     href        path from the repo root, or null when status is 'planned'
+     href        path from the repo root. End it with index.html rather than a bare
+                 folder: opening the dashboard from disk (file://) shows a directory
+                 listing for a folder URL instead of loading the page.
      icon        a single emoji
      tags        lowercase keywords, used by search and the filter chips
      status      'live' | 'beta' | 'planned'
@@ -23,7 +25,7 @@ window.TOOLS = [
     description: 'Lay out employee codes and names as bordered cards on A4 — seating ' +
                  'stickers, 3×7 label sheets, badges or large guest tiles — and export ' +
                  'them as PDF, PNG or SVG.',
-    href: 'tools/employee-cards/',
+    href: 'tools/employee-cards/index.html',
     icon: '🏷️',
     tags: ['print', 'pdf', 'labels', 'a4', 'hr'],
     status: 'live',

@@ -17,7 +17,15 @@
 <body>
   <div class="box">
     <h1>404 &mdash; page not found</h1>
-    <p>That page doesn't exist here. <a href="/">Back to all tools</a></p>
+    <p>That page doesn't exist here. <a id="home" href="/">Back to all tools</a></p>
   </div>
+  <script>
+    // On a project site the dashboard lives at /<repo>/, not at /
+    (function () {
+      var seg = location.pathname.split('/')[1];
+      document.getElementById('home').href =
+        (seg && seg.indexOf('.') === -1) ? '/' + seg + '/' : '/';
+    })();
+  </script>
 </body>
 </html>

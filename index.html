@@ -133,10 +133,20 @@
     return q.toLowerCase().split(/\s+/).every(function (w) { return hay.indexOf(w) > -1; });
   }
 
+  // A folder URL only resolves to index.html on a web server; from disk it lists the
+  // directory. Repair such links so the dashboard works either way.
+  function linkFor(t) {
+    var h = t.href;
+    if (!h) return null;
+    if (location.protocol === 'file:' && /\/$/.test(h)) h += 'index.html';
+    return h;
+  }
+
   function cardHtml(t) {
-    var live = t.status !== 'planned' && t.href;
+    var href = linkFor(t);
+    var live = t.status !== 'planned' && href;
     var tag = live ? 'a' : 'div';
-    var attrs = live ? ' href="' + esc(t.href) + '"' : '';
+    var attrs = live ? ' href="' + esc(href) + '"' : '';
     var when = t.updated ? 'Updated ' + esc(t.updated) : '';
     return '<' + tag + attrs + ' class="card' + (live ? '' : ' soon') + '" id="' + esc(t.id) + '">' +
       '<div class="top">' +

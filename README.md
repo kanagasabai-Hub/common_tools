@@ -17,13 +17,18 @@ self-contained HTML file with no build step.
      id: 'your-tool',
      name: 'Your Tool',
      description: 'One or two sentences about what it does.',
-     href: 'tools/your-tool/',
+     href: 'tools/your-tool/index.html',
      icon: '📐',
      tags: ['print', 'csv'],
      status: 'live',          // live | beta | planned
      updated: '2026-09-07'
    }
    ```
+
+   Write `href` as a path to the **file**, not the folder. A folder URL like
+   `tools/your-tool/` only resolves to `index.html` on a web server; opened from disk it
+   shows a directory listing. (The dashboard repairs folder-style links when it detects
+   `file://`, but the explicit form is clearer.)
 
 3. Commit and push. The dashboard rebuilds itself from that list — search, tag filters and
    the tool count all update automatically. Entries with `status: 'planned'` (or
