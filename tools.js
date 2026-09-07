@@ -31,6 +31,26 @@ window.TOOLS = [
     status: 'live',
     updated: '2026-09-07',
     featured: true
+  },
+  {
+    id: 'color-gradient',
+    name: 'Color & Gradient Studio',
+    description: 'Pick and convert colors, extract image palettes, check contrast, and create linear, radial, conic or mesh gradients. Export CSS, SVG and PNG.',
+    href: 'tools/color-picker%20%26%20gradient/index.html',
+    icon: '🎨',
+    tags: ['design', 'color', 'gradient', 'palette', 'css', 'svg'],
+    status: 'live',
+    updated: '2026-09-07'
+  },
+  {
+    id: 'pattern-generator',
+    name: 'Pattern Studio',
+    description: 'Explore 129 editable floral, geometric, textile, organic, decorative, retro and tech patterns, or build a custom motif. Create seamless tiles and export SVG, PNG and CSS.',
+    href: 'tools/pattern-generator/index.html',
+    icon: '▧',
+    tags: ['design', 'pattern', 'background', 'texture', 'css', 'svg'],
+    status: 'live',
+    updated: '2026-09-07'
   }
 
   // Example of a placeholder entry — delete or replace:

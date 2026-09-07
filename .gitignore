@@ -12,3 +12,4 @@ desktop.ini
 
 # node (only if you add tooling later)
 node_modules/
+.test-artifacts/

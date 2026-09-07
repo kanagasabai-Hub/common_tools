@@ -1,0 +1,55 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Design studio browser tests</title><body><h1>Design studio browser tests</h1><pre id="results">Running…</pre><iframe id="app" style="width:1440px;height:1000px"></iframe><script>
+(async()=>{
+const results=[],frame=document.getElementById('app');let downloads=[],errors=[],w,d,storageBackup=null;
+function restoreStorage(){if(storageBackup&&w){for(const [key,value] of Object.entries(storageBackup)){if(value===null)w.localStorage.removeItem(key);else w.localStorage.setItem(key,value);}storageBackup=null;}}
+function assert(ok,label){if(!ok)throw Error(label);results.push('PASS '+label);}
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+async function load(path){restoreStorage();await new Promise(resolve=>{frame.onload=resolve;frame.src=path;});w=frame.contentWindow;d=w.document;storageBackup=Object.fromEntries(['bt-color-saved','bt-pattern-saved'].map(k=>[k,w.localStorage.getItem(k)]));downloads=[];errors=[];w.addEventListener('error',e=>errors.push(e.message));w.addEventListener('unhandledrejection',e=>errors.push(String(e.reason)));w.HTMLAnchorElement.prototype.click=function(){downloads.push({name:this.download,url:this.href});};}
+function input(id,value,event='input'){const el=d.getElementById(id);if(el.type==='checkbox')el.checked=value;else el.value=value;el.dispatchEvent(new w.Event(event,{bubbles:true}));}
+const click=id=>d.getElementById(id).click();
+async function exported(id){const before=downloads.length;click(id);for(let i=0;i<300&&downloads.length===before;i++)await wait(20);assert(downloads.length>before,id+' creates a download ('+d.getElementById('toast').textContent+'; errors: '+errors.join(',')+')');const x=downloads.at(-1),blob=await fetch(x.url).then(r=>r.blob());return {name:x.name,blob,text:()=>blob.text()};}
+async function pixels(blob){const url=URL.createObjectURL(blob),img=new Image();await new Promise((r,j)=>{img.onload=r;img.onerror=j;img.src=url;});const c=document.createElement('canvas');c.width=img.width;c.height=img.height;c.getContext('2d').drawImage(img,0,0);URL.revokeObjectURL(url);return c;}
+async function project(){return JSON.parse(await(await exported('exportProject')).text());}
+async function importState(state){const transfer=new w.DataTransfer();transfer.items.add(new w.File([JSON.stringify(state)],'test.json',{type:'application/json'}));d.getElementById('toast').textContent='';d.getElementById('importProject').files=transfer.files;d.getElementById('importProject').dispatchEvent(new w.Event('change'));for(let i=0;i<200&&!d.getElementById('toast').textContent;i++)await wait(20);assert(!!d.getElementById('toast').textContent,'Import responds: '+d.getElementById('toast').textContent);}
+try{
+await load('../tools/color-picker%20%26%20gradient/index.html');
+assert(d.getElementById('stops').children.length===3,'Gradient initializes with three stops');
+frame.style.width='390px';await wait(50);assert(d.documentElement.scrollWidth<=d.documentElement.clientWidth,'Color layout fits mobile: '+d.documentElement.scrollWidth+'/'+d.documentElement.clientWidth);frame.style.width='1440px';
+assert(w.Studio.fromHsl(120,100,50)==='#00ff00','HSL converts green correctly');
+assert(w.Studio.fromHsv(240,100,100)==='#0000ff','HSV converts blue correctly');
+assert(w.Studio.contrast('#000000','#ffffff')===21,'Black / white contrast is 21:1');
+for(const type of ['linear','radial','conic','mesh']){input('gradientType',type);assert(d.getElementById('art').style.backgroundImage.includes('gradient('),type+' renders valid CSS');input('gradientType',type,'change');}
+input('gradientType','linear','change');click('addStop');assert(d.getElementById('stops').children.length===4,'Add stop');click('undo');assert(d.getElementById('stops').children.length===3,'Undo stops');click('redo');assert(d.getElementById('stops').children.length===4,'Redo stops');
+click('colorTab');input('pickedHex','#000000','change');assert(d.getElementById('contrastRatio').textContent==='21.00:1','Color UI contrast updates');input('alpha',50);assert(d.getElementById('formats').textContent.includes('#00000080'),'HEX8 reflects alpha');input('alpha',50,'change');
+input('pickedHex','invalid','change');assert(d.getElementById('pickedHex').value==='#000000','Invalid hex is rejected');
+for(const harmony of ['analogous','complementary','split','triadic','tetradic','monochrome','shades']){input('harmony',harmony,'change');assert(d.getElementById('harmonyPalette').children.length>=2,harmony+' palette renders');}
+click('paletteToGradient');assert(d.getElementById('stops').children.length===5,'Palette becomes five gradient stops');
+let state=await project();state.stops=[{color:'#ff0000',pos:0,a:1,x:25,y:25},{color:'#0000ff',pos:100,a:1,x:75,y:75}];state.angle=90;state.type='linear';state.repeat=false;await importState(state);
+input('exportW',64,'change');input('exportH',32,'change');const png=await exported('exportPNG'),c=await pixels(png.blob);assert(c.width===64&&c.height===32,'PNG dimensions');let p=c.getContext('2d').getImageData(0,16,64,1).data;assert(p[0]>250&&p[2]<5&&p[252]<5&&p[254]>250,'Linear PNG direction and endpoint colors: '+[...p.slice(0,4),...p.slice(252,256)].join(','));
+const vector=await exported('exportSVG');assert((await vector.text()).includes('<linearGradient'),'Linear SVG remains vector');
+state.type='radial';state.shape='ellipse';state.x=20;state.y=75;await importState(state);assert((await(await exported('exportSVG')).text()).includes('<radialGradient'),'Radial SVG remains vector');
+for(const type of ['conic','mesh']){state.type=type;await importState(state);const image=await exported('exportPNG');assert((await pixels(image.blob)).width===64,type+' raster export decodes');}
+state.type='linear';state.repeat=true;state.stops[1].pos=25;await importState(state);assert((await(await exported('exportSVG')).text()).includes('data:image/png'),'Repeating SVG embeds rendered background');
+state.stops[0].color='url(https://invalid.test)';await importState(state);assert(d.getElementById('toast').textContent.includes('Invalid'),'Unsafe imported colors are rejected');
+const source=document.createElement('canvas');source.width=source.height=20;const sourceCtx=source.getContext('2d');sourceCtx.fillStyle='#ff0000';sourceCtx.fillRect(0,0,10,20);sourceCtx.fillStyle='#00ff00';sourceCtx.fillRect(10,0,10,20);const imageBlob=await fetch(source.toDataURL()).then(r=>r.blob()),imageTransfer=new w.DataTransfer();imageTransfer.items.add(new w.File([imageBlob],'palette.png',{type:'image/png'}));d.getElementById('imageInput').files=imageTransfer.files;d.getElementById('imageInput').dispatchEvent(new w.Event('change'));for(let i=0;i<200&&!d.getElementById('imagePalette').children.length;i++)await wait(20);assert(d.querySelector('[data-pick="#ff0000"]')&&d.querySelector('[data-pick="#00ff00"]'),'Image palette extracts known red and green');d.querySelector('#imagePalette [data-pick="#00ff00"]').click();assert(d.getElementById('pickedHex').value==='#00ff00','Extracted color enters picker');
+click('save');assert(+d.getElementById('savedCount').textContent>0,'Color creation saved');assert(errors.length===0,'No color runtime errors');
+await load('../tools/pattern-generator/index.html');
+assert(d.querySelectorAll('[data-pattern]').length===130,'All 130 pattern recipes registered');
+{const chips=[...d.querySelectorAll('[data-category]')].map(b=>b.dataset.category);assert(chips[0]==='All','First chip is All');let reachable=0;for(const c of chips.slice(1)){d.querySelector(`[data-category="${c}"]`).click();const shown=d.querySelectorAll('[data-pattern]').length;assert(shown>0,'Category '+c+' lists patterns');reachable+=shown;}d.querySelector('[data-category="All"]').click();assert(reachable===130,'Every pattern is reachable from a category chip ('+reachable+'/130 via '+(chips.length-1)+' chips)');}
+frame.style.width='390px';await wait(50);assert(d.documentElement.scrollWidth<=d.documentElement.clientWidth,'Pattern layout fits mobile: '+d.documentElement.scrollWidth+'/'+d.documentElement.clientWidth);frame.style.width='1440px';
+input('exportW',64,'change');input('exportH',64,'change');
+for(const b of [...d.querySelectorAll('[data-pattern]')]){b.click();const source=d.getElementById('art').innerHTML,xml=new DOMParser().parseFromString(source,'image/svg+xml');assert(!xml.querySelector('parsererror'),b.dataset.pattern+' produces valid SVG');const c=await pixels(new Blob([source.replace('width="100%" height="100%"','width="64" height="64"')],{type:'image/svg+xml'}));assert(c.width===64,b.dataset.pattern+' SVG rasterizes');}
+input('search','unfindable');assert(!d.querySelector('[data-pattern]'),'Library empty search state');input('search','gingham');assert(d.querySelectorAll('[data-pattern]').length===1,'Library keyword filter');d.querySelector('[data-pattern]').click();
+input('transparent',true,'change');input('rotation',45);input('rotation',45,'change');click('undo');assert(d.getElementById('rotation').value==='0','Pattern undo');click('redo');assert(d.getElementById('rotation').value==='45','Pattern redo');
+let recipe=await project();recipe.pattern='terrazzo';recipe.seed=123;await importState(recipe);const first=d.getElementById('art').innerHTML;await importState(recipe);assert(first===d.getElementById('art').innerHTML,'Seeded pattern deterministic');recipe.seed=124;await importState(recipe);assert(first!==d.getElementById('art').innerHTML,'Seed changes randomized geometry');
+const patternPNG=await exported('exportPNG');assert((await pixels(patternPNG.blob)).width===64,'Pattern PNG dimensions');
+const tile=await exported('exportTile'),tileText=await tile.text();assert(tileText.includes('rotate(0)')&&tileText.includes('translate(0 0)'),'Base tile excludes rotation and offsets');
+recipe.pattern='custom';recipe.customShape='text';recipe.customText='<svg>';await importState(recipe);assert(d.getElementById('art').innerHTML.includes('&lt;svg&gt;'),'Custom text is escaped');
+const cssFile=await exported('exportCSS');assert((await cssFile.text()).includes('data:image/svg+xml,'),'CSS export is self-contained');
+const uri=d.getElementById('code').textContent.match(/url\("(.*?)"\)/)[1];const bg=d.createElement('div');bg.style.cssText='width:100px;height:100px;background-image:url("'+uri+'");';d.body.append(bg);assert(w.getComputedStyle(bg).backgroundImage!=='none','Pattern CSS parses in browser');bg.remove();
+click('save');assert(+d.getElementById('savedCount').textContent>0,'Pattern saved');assert(errors.length===0,'No pattern runtime errors');
+await load('../index.html');assert(d.querySelectorAll('a.card').length===3,'Dashboard lists all three tools');for(const a of d.querySelectorAll('a.card'))assert((await fetch(a.href)).ok,'Dashboard route '+a.id+' resolves');
+document.getElementById('results').textContent=results.join('\n')+'\nALL TESTS PASSED ('+results.length+')';document.title='PASS — Studio tests';
+}catch(e){document.getElementById('results').textContent=results.join('\n')+'\nFAIL '+e.stack;document.title='FAIL — Studio tests';}finally{restoreStorage();}
+})();
+</script></body></html>

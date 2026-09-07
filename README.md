@@ -2,14 +2,15 @@
 
 A small collection of single-page browser tools, published with GitHub Pages. The site
 root is a dashboard that lists every tool; each tool lives in its own folder and is a
-self-contained HTML file with no build step.
+static HTML page with no build step. Design tools share local CSS and JavaScript assets;
+all pages can be opened from disk or served with any static web server.
 
 **Live site:** https://kanagasabai-hub.github.io/<your-repo>/
 *(update this link once the repository exists)*
 
 ## Adding a new tool
 
-1. Create `tools/<your-tool>/index.html` — a single self-contained page.
+1. Create `tools/<your-tool>/index.html` — a static page, with local assets if needed.
 2. Add one entry to `tools.js`:
 
    ```js
@@ -50,7 +51,87 @@ tools/
   employee-cards/
     index.html                      the card generator
     sample-employee-codes.csv       synthetic sample data — not real people
+  color-picker & gradient/
+    index.html                      color and gradient editor
+    color-studio.js                  color math, palettes, gradients and exports
+  pattern-generator/
+    index.html                      pattern library and editor
+    patterns.js                     130 vector recipes and exports
+  design-studio.css                 shared responsive design-tool styles
+  studio-common.js                  shared local utilities
+tests/
+  studio-smoke.html                 browser integration and export checks
 ```
+
+---
+
+# Design tools
+
+Open either tool from the dashboard. Both are dependency-free and work offline, including
+when opened from disk. Keep their folders and the shared `tools/design-studio.css` and
+`tools/studio-common.js` files together.
+
+## Color & Gradient Studio
+
+**Page:** [`tools/color-picker & gradient/index.html`](tools/color-picker%20%26%20gradient/index.html)
+
+- Color picker with a saturation/brightness canvas, HSV sliders, editable RGB/HSL
+  channels, native color well, HEX entry and opacity.
+- Copy HEX, HEX8, RGB, HSL, HSV, approximate CMYK, OKLCH and CSS variables.
+- Screen eyedropper where the browser supports it; local image pixel sampling and
+  dominant-color extraction (images up to 20 MB).
+- Seven palette harmonies, palette CSS export and palette-to-gradient conversion.
+- WCAG 2.x contrast ratios and AA/AAA checks, including alpha compositing against an
+  editable background. CMYK is unprofiled and is not a print color proof.
+- Linear, radial, conic and mesh/glow gradients; 2–12 color stops/layers, per-stop
+  opacity, draggable and keyboard-adjustable stops, angles, center positioning,
+  radial shapes, repeats, mesh layer centers, reversal and even distribution.
+- Twelve presets, randomization, sample text, fullscreen preview and undo/redo.
+- CSS, PNG, SVG and editable JSON projects. Non-repeating linear/radial gradients
+  export as vector SVG; conic, mesh and repeating gradients embed a rendered PNG in
+  the SVG. Mesh is a stack of radial glows, not a Bézier mesh editor.
+
+## Pattern Studio
+
+**Page:** [`tools/pattern-generator/index.html`](tools/pattern-generator/index.html)
+
+130 recipes cover floral, geometric, textile, organic, decorative, retro and tech families,
+plus custom motifs. Category chips are derived from the recipe table, so a new family appears
+in the sidebar on its own.
+The library includes dots, stripes, grids, checks, honeycomb, cubes, chevrons, rings,
+gingham, plaid, tartan, herringbone, basket weave, houndstooth, argyle, knit, waves,
+terrazzo, confetti, grain, pebbles, wood grain, contour lines, stars, flowers, ornamental
+tiles, mazes, Truchet arcs and more. This is an extensible collection rather than a claim
+to exhaust every possible pattern; some traditional textures are stylized interpretations.
+
+- Search and category filters, eight color schemes, three editable colors, swapping,
+  inversion, transparency and opacity.
+- Scale, rotation, weight, density, motif spacing, mirroring and X/Y offsets.
+  Controls that do not apply to the selected recipe are disabled.
+- Seeded organic and randomized patterns; matching settings and seed reproduce the
+  same geometry. Custom shapes or short text support grid, half-drop and scatter layouts.
+- Preview zoom, tile-boundary guides, stationery mockup, fullscreen and undo/redo.
+- Vector SVG backgrounds, seamless unrotated base tiles, PNG, standalone CSS data URIs
+  and JSON project import/export. Preview decorations are excluded from exports.
+  Text motifs use the rendering system's fonts and can vary between devices.
+
+Both tools support exports from 16 to 4096 pixels on either axis, up to 30 saved
+creations per tool in browser local storage, and an 80-state undo history. Saved
+creations are specific to the browser and origin; export JSON projects for portable
+backups. If browser storage is blocked or full, the tools still work and explain how
+to export a project. Nothing is uploaded, and no external assets or libraries load.
+
+## Checking the design tools
+
+```bash
+python -m http.server 8765 --bind 127.0.0.1
+```
+
+Open `http://127.0.0.1:8765/tests/studio-smoke.html` in a current Chromium browser.
+The browser test page checks conversion/contrast math, editing and undo/redo, imports,
+every pattern's SVG rendering, deterministic seeds, downloads and PNG pixels, mobile
+overflow, and dashboard routes. Downloads are intercepted by the tests. Test saves
+are restored afterward so existing saved creations remain intact.
 
 ---
 
