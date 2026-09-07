@@ -1,0 +1,14 @@
+# generated output
+*.pdf
+*-page-*.png
+*-page-*.svg
+
+# editor / OS noise
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# node (only if you add tooling later)
+node_modules/
