@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="description" content="Generate printable A4 sheets of employee code and name cards - single or double bordered, any size, portrait or landscape - and export them as PDF, PNG or SVG. Runs entirely in your browser.">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#0f172a">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Employee Code &amp; Seating Card Generator">
+<meta property="og:description" content="Printable A4 code and name cards - PDF, PNG, SVG. All processing happens in your browser; nothing is uploaded.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='6'%20fill='%23342382'/%3E%3Crect%20x='6'%20y='6'%20width='20'%20height='20'%20rx='2'%20fill='none'%20stroke='white'%20stroke-width='2.5'/%3E%3C/svg%3E">
+<title>Employee Code &amp; Seating Card Generator</title>
+<style>
+  :root{
+    --bg:#eef1f6; --panel:#ffffff; --ink:#111827; --muted:#6b7280;
+    --line:#d7dce5; --accent:#1f6feb; --accent-ink:#fff; --shadow:0 2px 10px rgba(16,24,40,.08);
+    --scale:.55; --pw:210mm; --ph:297mm;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:14px/1.45 "Segoe UI",Roboto,Arial,sans-serif;color:var(--ink);background:var(--bg)}
+  header{background:#0f172a;color:#fff;padding:14px 20px;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+  header h1{margin:0;font-size:17px;font-weight:600;letter-spacing:.2px}
+  header span{color:#93a3b8;font-size:12.5px}
+  header .priv{color:#7dd3a0}
+  header .back{margin-left:auto;color:#c7d2e5;font-size:12.5px;text-decoration:none;
+    border:1px solid #33415b;border-radius:6px;padding:5px 11px;white-space:nowrap}
+  header .back:hover{background:#1e293b;color:#fff}
+  .app{display:flex;align-items:flex-start;gap:18px;padding:18px;max-width:1600px;margin:0 auto}
+  .sidebar{width:330px;flex:0 0 330px;background:var(--panel);border:1px solid var(--line);
+    border-radius:10px;box-shadow:var(--shadow);padding:16px;position:sticky;top:18px;
+    max-height:calc(100vh - 36px);overflow:auto}
+  .stage{flex:1;min-width:0}
+  fieldset{border:0;padding:0;margin:0 0 18px}
+  .grp{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+  label{display:block;font-size:12.5px;color:#374151;margin:10px 0 4px}
+  input[type=text],input[type=number],select,textarea{width:100%;padding:7px 9px;border:1px solid var(--line);
+    border-radius:6px;font:inherit;background:#fff;color:var(--ink)}
+  input[type=color]{width:100%;height:34px;padding:2px;border:1px solid var(--line);border-radius:6px;
+    background:#fff;cursor:pointer}
+  .swatches{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;margin:6px 0 4px}
+  .swatches button{height:22px;padding:0;border-radius:5px;border:1px solid rgba(0,0,0,.18);cursor:pointer}
+  .swatches button:hover{outline:2px solid var(--accent);outline-offset:1px}
+  .swatches button.on{outline:2px solid var(--ink);outline-offset:1px}
+  .hex{margin-top:4px;font-family:Consolas,monospace;font-size:11.5px;text-align:center;padding:4px !important}
+  input[type=range]{width:100%;accent-color:var(--accent);margin:0;cursor:pointer}
+  .srow{display:flex;justify-content:space-between;align-items:baseline;margin:12px 0 3px}
+  .srow label{margin:0}
+  .sval{font-size:11.5px;color:var(--muted);font-family:Consolas,monospace;white-space:nowrap}
+  .mini{font-size:11px;color:var(--muted);margin:10px 0 2px;text-transform:uppercase;letter-spacing:.07em;font-weight:700}
+  .linkbtn{width:100%;margin-top:8px;font-size:12.5px;padding:6px}
+  textarea{min-height:110px;resize:vertical;font-family:Consolas,monospace;font-size:12.5px}
+  .row{display:flex;gap:10px}
+  .row>*{flex:1;min-width:0}
+  .check{display:flex;align-items:center;gap:8px;margin:8px 0;font-size:12.5px;color:#374151}
+  .check input{margin:0}
+  .check label{margin:0}
+  button{font:inherit;border-radius:6px;border:1px solid var(--line);background:#fff;color:var(--ink);
+    padding:8px 12px;cursor:pointer}
+  button:hover{border-color:#9aa5b6}
+  button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);
+    font-weight:600;width:100%;padding:10px;margin-top:10px}
+  button.primary:hover{background:#1a5fd0}
+  .drop{border:2px dashed #b9c2d0;border-radius:8px;padding:18px 12px;text-align:center;color:var(--muted);
+    background:#fafbfd;cursor:pointer;font-size:12.5px}
+  .drop.over{border-color:var(--accent);background:#eef4ff;color:var(--accent)}
+  .drop b{color:var(--ink)}
+  .btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+  .btns button{width:100%}
+  .toolbar{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 12px;
+    font-size:12.5px;box-shadow:var(--shadow)}
+  .stat b{font-size:14px}
+  .zoom{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)}
+  .pages{display:flex;flex-direction:column;align-items:center;gap:20px}
+  .page-wrap{width:calc(var(--pw) * var(--scale));height:calc(var(--ph) * var(--scale))}
+  .page{width:var(--pw);height:var(--ph);background:#fff;position:relative;box-shadow:0 3px 14px rgba(16,24,40,.18);
+    transform:scale(var(--scale));transform-origin:top left;overflow:hidden}
+  .box{position:absolute;overflow:hidden;font-family:Arial,Helvetica,sans-serif}
+  .box .inner{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;text-align:center;overflow:hidden}
+  .box .code{font-weight:700;line-height:1;white-space:nowrap}
+  .box .cap{line-height:1;color:#111;white-space:nowrap}
+  .pagenum{text-align:center;color:var(--muted);font-size:12px;margin-top:6px}
+  .empty{background:var(--panel);border:1px dashed var(--line);border-radius:10px;padding:60px 20px;
+    text-align:center;color:var(--muted)}
+  .note{font-size:11.5px;color:var(--muted);margin-top:6px}
+  .warn{font-size:11.5px;color:#9a3412;background:#fff7ed;border:1px solid #fed7aa;
+    border-radius:6px;padding:6px 8px;margin-top:8px}
+  @media print{
+    body{background:#fff}
+    header,.sidebar,.toolbar,.pagenum{display:none !important}
+    .app{display:block;padding:0;max-width:none}
+    .pages{gap:0}
+    .page-wrap{width:var(--pw);height:var(--ph)}
+    .page{transform:none !important;box-shadow:none;break-after:page;page-break-after:always}
+    .page:last-child{break-after:auto;page-break-after:auto}
+    /* @page size is injected by the app to follow the orientation choice */
+  }
+</style>
+<style id="printStyle">@media print{@page{size:210mm 297mm;margin:0}}</style>
+</head>
+<body>
+<header>
+  <h1>Employee Code &amp; Seating Card Generator</h1>
+  <span>Bordered cards on A4, portrait or landscape &middot; PDF / PNG / SVG / Print</span>
+  <span class="priv">Runs entirely in your browser &mdash; nothing you paste or upload leaves this device.</span>
+  <a class="back" href="../../">&larr; All tools</a>
+</header>
+
+<div class="app">
+  <aside class="sidebar">
+    <fieldset>
+      <div class="grp">1 &middot; Employee codes</div>
+      <div class="drop" id="drop">
+        <b>Click to upload</b> or drop a file<br>.csv, .txt, .tsv &mdash; one record per line
+      </div>
+      <input type="file" id="file" accept=".csv,.txt,.tsv,text/plain,text/csv" hidden />
+      <label for="paste">Or paste / edit codes</label>
+      <textarea id="paste" placeholder="EMP001, John Doe&#10;EMP002, Priya Iyer&#10;EMP003, Sam Lee"></textarea>
+      <div class="note">Format: <b>code, name</b> per line &mdash; the name goes below the code.</div>
+      <label for="showMode">Show on the card</label>
+      <select id="showMode">
+        <option value="both" selected>Code with name below</option>
+        <option value="code">Code only</option>
+        <option value="name">Name only</option>
+      </select>
+      <label for="nameMode">Name format</label>
+      <select id="nameMode">
+        <option value="first" selected>First name only</option>
+        <option value="full">Full name</option>
+      </select>
+      <div class="check"><input type="checkbox" id="optUpper" checked><label for="optUpper">Force UPPERCASE code</label></div>
+      <div class="check"><input type="checkbox" id="optNameUpper"><label for="optNameUpper">Uppercase name too</label></div>
+      <div class="check"><input type="checkbox" id="optDedupe"><label for="optDedupe">Remove duplicates</label></div>
+    </fieldset>
+
+    <fieldset>
+      <div class="grp">2 &middot; Page &amp; sticker size</div>
+      <label for="orient">Page orientation (A4)</label>
+      <select id="orient">
+        <option value="portrait" selected>Portrait &mdash; 210 &times; 297 mm</option>
+        <option value="landscape">Landscape &mdash; 297 &times; 210 mm</option>
+      </select>
+      <label for="preset">Preset</label>
+      <select id="preset">
+        <option value="63x38" selected>Label sheet &mdash; 63 &times; 38 mm (3 &times; 7 = 21)</option>
+        <option value="180x80">Seating sticker &mdash; 18 &times; 8 cm</option>
+        <option value="180x60">Slim seating &mdash; 18 &times; 6 cm</option>
+        <option value="90x50">Name badge &mdash; 9 &times; 5 cm</option>
+        <option value="45x45">Square code card &mdash; 4.5 &times; 4.5 cm (20/page)</option>
+        <option value="250x150:landscape">Guest tile &mdash; 25 &times; 15 cm (landscape)</option>
+        <option value="270x190:landscape">VIP full tile &mdash; 27 &times; 19 cm (landscape, 1/page)</option>
+        <option value="130x95:landscape">Table tent &mdash; 13 &times; 9.5 cm (landscape)</option>
+        <option value="custom">Custom&hellip;</option>
+      </select>
+      <div class="row">
+        <div><label for="boxW">Width (mm)</label>
+          <input type="number" id="boxW" value="63" min="20" max="297" step="0.5"></div>
+        <div><label for="boxH">Height (mm)</label>
+          <input type="number" id="boxH" value="38" min="15" max="297" step="0.5"></div>
+      </div>
+      <div class="mini">Page margins</div>
+      <div class="row">
+        <div><label for="marginTop">Top (mm)</label>
+          <input type="number" id="marginTop" value="15.5" min="0" max="60" step="0.5"></div>
+        <div><label for="marginBottom">Bottom (mm)</label>
+          <input type="number" id="marginBottom" value="15.5" min="0" max="60" step="0.5"></div>
+        <div><label for="marginSide">Sides (mm)</label>
+          <input type="number" id="marginSide" value="8" min="0" max="60" step="0.5"></div>
+      </div>
+      <div class="mini">Gaps between cards</div>
+      <div class="row">
+        <div><label for="gapX">Column gap (mm)</label>
+          <input type="number" id="gapX" value="2.5" min="0" max="40" step="0.5"></div>
+        <div><label for="gapY">Row gap (mm)</label>
+          <input type="number" id="gapY" value="0" min="0" max="40" step="0.5"></div>
+      </div>
+      <label for="align">Arrangement inside the margins</label>
+      <select id="align">
+        <option value="centre" selected>Centre the block</option>
+        <option value="topleft">Start at the top-left margin</option>
+      </select>
+      <label for="borderStyle">Border</label>
+      <select id="borderStyle">
+        <option value="single" selected>Single line</option>
+        <option value="double">Double line</option>
+        <option value="none">No border</option>
+      </select>
+      <div class="row">
+        <div><label for="bw">Border thickness (mm)</label>
+          <input type="number" id="bw" value="1.2" min="0.2" max="5" step="0.1"></div>
+        <div><label for="bgap">Gap between lines (mm)</label>
+          <input type="number" id="bgap" value="1.2" min="0.2" max="6" step="0.1"></div>
+      </div>
+      <div class="check"><input type="checkbox" id="optCut" checked><label for="optCut">Show cut guides</label></div>
+      <label for="pageNum">Page number at the bottom</label>
+      <select id="pageNum">
+        <option value="of" selected>Page 1 of 12 (bold, centred)</option>
+        <option value="page">Page 1</option>
+        <option value="plain">1</option>
+        <option value="off">No page number</option>
+      </select>
+      <div class="note">Stickers are auto-arranged to fit A4, capped at 20 per page.</div>
+      <div id="warn"></div>
+    </fieldset>
+
+    <fieldset>
+      <div class="grp">3 &middot; Colours</div>
+      <label for="scheme">Colour scheme</label>
+      <select id="scheme">
+        <option value="indigo" selected>Indigo fill, white text</option>
+        <option value="indigoOutline">White fill, indigo text &amp; border</option>
+        <option value="black">Black on white (classic)</option>
+        <option value="custom">Custom&hellip;</option>
+      </select>
+      <div class="mini">Palette &mdash; click to set the fill</div>
+      <div class="swatches" id="swatches"></div>
+      <div class="row">
+        <div>
+          <label for="cFill">Fill</label>
+          <input type="color" id="cFill" value="#342382">
+          <input type="text" class="hex" id="hFill" value="#342382" maxlength="7" spellcheck="false">
+        </div>
+        <div>
+          <label for="cText">Text</label>
+          <input type="color" id="cText" value="#ffffff">
+          <input type="text" class="hex" id="hText" value="#ffffff" maxlength="7" spellcheck="false">
+        </div>
+        <div>
+          <label for="cBorder">Border</label>
+          <input type="color" id="cBorder" value="#ffffff">
+          <input type="text" class="hex" id="hBorder" value="#ffffff" maxlength="7" spellcheck="false">
+        </div>
+      </div>
+      <button class="linkbtn" id="btnSwap">Swap fill &harr; text</button>
+      <div class="note">The sheet itself stays white, so only the sticker area takes ink.
+        Clicking a palette colour also picks a readable text colour for you.</div>
+    </fieldset>
+
+    <fieldset>
+      <div class="grp">4 &middot; Typography</div>
+      <label for="fontFamily">Font</label>
+      <select id="fontFamily">
+        <option value="sans" selected>Sans &mdash; Arial / Helvetica</option>
+        <option value="cond">Condensed &mdash; Arial Narrow</option>
+        <option value="serif">Serif &mdash; Georgia / Times</option>
+        <option value="mono">Mono &mdash; Courier</option>
+      </select>
+
+      <div class="srow"><label for="codeSize">Code size</label><span class="sval" id="vCodeSize">100%</span></div>
+      <input type="range" id="codeSize" min="30" max="100" value="100" step="1">
+
+      <label for="codeWeight">Code weight</label>
+      <select id="codeWeight">
+        <option value="700" selected>Bold</option>
+        <option value="400">Regular</option>
+      </select>
+
+      <div class="srow"><label for="nameSize">Name size</label><span class="sval" id="vNameSize">42%</span></div>
+      <input type="range" id="nameSize" min="15" max="80" value="42" step="1">
+
+      <label for="nameStyle">Name style</label>
+      <select id="nameStyle">
+        <option value="normal" selected>Regular</option>
+        <option value="bold">Bold</option>
+        <option value="italic">Italic</option>
+      </select>
+
+      <div class="srow"><label for="lineGap">Space under code</label><span class="sval" id="vLineGap">22%</span></div>
+      <input type="range" id="lineGap" min="0" max="60" value="22" step="1">
+
+      <div class="note" id="typoNote">Sizes auto-fit the sticker; the sliders scale down from that maximum.</div>
+    </fieldset>
+
+    <fieldset>
+      <div class="grp">5 &middot; Output</div>
+      <label for="fname">File name</label>
+      <input type="text" id="fname" value="seating-stickers">
+      <button class="primary" id="btnPdf">Download PDF (A4)</button>
+      <div class="btns">
+        <button id="btnPng">PNG pages</button>
+        <button id="btnPrint">Print</button>
+        <button id="btnSvg">SVG pages</button>
+        <button id="btnCsv">Clean CSV</button>
+      </div>
+      <div class="note">PDF is true vector at exact A4 size. PNG exports at 300 DPI.
+        When printing, set scale to 100% / "Actual size".</div>
+    </fieldset>
+  </aside>
+
+  <main class="stage">
+    <div class="toolbar">
+      <div class="stat">Codes: <b id="cCount">0</b></div>
+      <div class="stat">Pages: <b id="cPages">0</b></div>
+      <div class="stat">Page: <b id="cPage">&mdash;</b></div>
+      <div class="stat">Sticker: <b id="cSize">&mdash;</b></div>
+      <div class="stat">Per page: <b id="cPer">&mdash;</b></div>
+      <div class="stat">Gap / edges: <b id="cGap">&mdash;</b></div>
+      <div class="zoom">Zoom
+        <input type="range" id="zoom" min="25" max="120" value="55" style="width:130px">
+        <span id="zoomVal">55%</span>
+      </div>
+    </div>
+    <div class="pages" id="pages"></div>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var A4 = 210, A4L = 297;                                  // A4 short / long edge, mm
+  var MAX_PER_PAGE = 200;                                   // safety valve only; geometry decides
+  var $ = function (id) { return document.getElementById(id); };
+  var meas = document.createElement('canvas').getContext('2d');
+  var records = [];        // [{ code, caption }]
+  var layout = null;
+
+  /* ---------------- parsing ---------------- */
+
+  function parse(text) {
+    var lines = text.replace(/\r/g, '').split('\n')
+      .map(function (l) { return l.trim(); })
+      .filter(function (l) { return l.length; });
+    var out = [];
+
+    if (lines.length === 1) {                               // single line -> many codes
+      lines[0].split(/[,;\t|]+/).forEach(function (t) {
+        t = t.trim();
+        if (t) out.push({ code: t, caption: '' });
+      });
+    } else {
+      lines.forEach(function (l) {
+        var f = l.split(/[,;\t]/).map(function (s) { return s.trim(); });
+        var code = f.shift();
+        if (code) out.push({ code: code, caption: f.filter(Boolean).join(' ') });
+      });
+    }
+
+    if (out.length && /^(employee\s*)?(code|id|emp[\s_-]*code|no\.?)$/i.test(out[0].code)) out.shift();
+    if ($('optUpper').checked) out.forEach(function (r) { r.code = r.code.toUpperCase(); });
+    if ($('optDedupe').checked) {
+      var seen = {};
+      out = out.filter(function (r) {
+        if (seen[r.code]) return false;
+        seen[r.code] = 1;
+        return true;
+      });
+    }
+    return out;
+  }
+
+  /* ---------------- geometry ---------------- */
+
+  function num(id, dflt) { var v = parseFloat($(id).value); return isFinite(v) ? v : dflt; }
+
+  // Fit as many W x H stickers on A4 as the page allows, capped at MAX_PER_PAGE.
+  // Cards are packed at exactly `gap` mm apart; leftover space goes to the page edges.
+  function computeLayout(n) {
+    var mt = num('marginTop', 15.5), mb = num('marginBottom', 15.5), ms = num('marginSide', 8);
+    var gapX = Math.max(0, num('gapX', 0)), gapY = Math.max(0, num('gapY', 0));
+    var land = $('orient').value === 'landscape';
+    var PW = land ? A4L : A4, PH = land ? A4 : A4L;
+    var availW = Math.max(10, PW - 2 * ms), availH = Math.max(10, PH - mt - mb);
+    var w = Math.min(num('boxW', 63), availW);
+    var h = Math.min(num('boxH', 38), availH);
+
+    var cols = Math.max(1, Math.floor((availW + gapX) / (w + gapX)));
+    var rows = Math.max(1, Math.floor((availH + gapY) / (h + gapY)));
+    if (cols * rows > MAX_PER_PAGE) rows = Math.max(1, Math.floor(MAX_PER_PAGE / cols));
+
+    var blockW = cols * w + (cols - 1) * gapX;
+    var blockH = rows * h + (rows - 1) * gapY;
+    var centred = $('align').value === 'centre';
+    var startX = centred ? ms + (availW - blockW) / 2 : ms;
+    var startY = centred ? mt + (availH - blockH) / 2 : mt;
+
+    // how much space one more row / column would need (drives the fitting hint)
+    var needRow = (rows + 1) * h + rows * gapY - availH;
+    var needCol = (cols + 1) * w + cols * gapX - availW;
+
+    var per = cols * rows;
+    var pages = [];
+    for (var i = 0; i < n; i += per) pages.push([i, Math.min(i + per, n)]);
+    if (!pages.length) pages.push([0, 0]);
+
+    return { pw: PW, ph: PH, land: land,
+             w: w, h: h, cols: cols, rows: rows, per: per,
+             mt: mt, mb: mb, ms: ms, gapX: gapX, gapY: gapY,
+             bw: num('bw', 1.2), bgap: num('bgap', 1.2), bstyle: $('borderStyle').value,
+             needRow: needRow, needCol: needCol,
+             startX: startX, startY: startY, blockW: blockW, blockH: blockH, pages: pages };
+  }
+
+  function boxAt(idx, L) {
+    var r = Math.floor(idx / L.cols), c = idx % L.cols;
+    return { x: L.startX + c * (L.w + L.gapX),
+             y: L.startY + r * (L.h + L.gapY) };
+  }
+
+  // breathing room inside the inner border line
+  function pad(L) { return Math.min(L.w, L.h) * 0.06; }
+
+  function lineCount(L) { return L.bstyle === 'double' ? 2 : (L.bstyle === 'none' ? 0 : 1); }
+
+  // total thickness of the border band
+  function frame(L) {
+    var n = lineCount(L);
+    return n === 2 ? 2 * L.bw + L.bgap : (n === 1 ? L.bw : 0);
+  }
+
+  // fill showing outside the outer line, so the border reads on a coloured card
+  function bInset(L) { return lineCount(L) ? L.bw : 0; }
+
+  function edge(L) { return bInset(L) + frame(L) + pad(L); } // sticker edge -> text area
+
+  function innerW(L) { return Math.max(4, L.w - 2 * edge(L)); }
+  function innerH(L) { return Math.max(4, L.h - 2 * edge(L)); }
+
+  /* ---------------- typography ---------------- */
+
+  var FONTS = {
+    sans:  { css: 'Arial, Helvetica, sans-serif',                  pdf: 'helvetica' },
+    cond:  { css: '"Arial Narrow", "Helvetica Neue", Arial, sans-serif', pdf: 'helvetica' },
+    serif: { css: 'Georgia, "Times New Roman", Times, serif',      pdf: 'times' },
+    mono:  { css: '"Courier New", Consolas, monospace',            pdf: 'courier' }
+  };
+
+  // current typography settings, resolved for every renderer
+  function typo() {
+    var f = FONTS[$('fontFamily').value] || FONTS.sans;
+    var ns = $('nameStyle').value;                           // normal | bold | italic
+    return {
+      css: f.css, pdf: f.pdf,
+      codeWeight: $('codeWeight').value,                     // '400' | '700'
+      codeItalic: false,
+      nameWeight: ns === 'bold' ? '700' : '400',
+      nameItalic: ns === 'italic',
+      pdfCodeStyle: $('codeWeight').value === '700' ? 'bold' : 'normal',
+      pdfNameStyle: ns === 'bold' ? 'bold' : (ns === 'italic' ? 'italic' : 'normal'),
+      codeScale: num('codeSize', 100) / 100,
+      nameRatio: num('nameSize', 42) / 100,
+      gapRatio: num('lineGap', 22) / 100
+    };
+  }
+
+  function cssFont(sizeMm, weight, italic, css) {
+    return (italic ? 'italic ' : '') + weight + ' ' + sizeMm + 'px ' + css;
+  }
+
+  function textWidth(text, weight, italic, css) {
+    meas.font = cssFont(100, weight, italic, css);
+    return (meas.measureText(text).width || 1) / 100;       // width per 1 unit of font size
+  }
+
+  // Sizes and vertical offsets (mm, relative to the sticker centre) for the code + name block.
+  function fitBlock(code, nm, L) {
+    var T = typo(), maxW = innerW(L), maxH = innerH(L);
+
+    // largest size that still fits the box, then scaled by the size slider
+    var fitted = Math.min(maxH * (nm ? 0.52 : 0.80),
+                          maxW / textWidth(code, T.codeWeight, T.codeItalic, T.css));
+    var fs = fitted * T.codeScale;
+    var nfs = nm ? Math.min(fs * T.nameRatio,
+                            maxW / textWidth(nm, T.nameWeight, T.nameItalic, T.css)) : 0;
+
+    var gap = nm ? fs * T.gapRatio : 0;
+    var total = fs + gap + nfs;
+    if (total > maxH) {                                     // scale the whole block down to fit
+      var k = maxH / total;
+      fs *= k; nfs *= k; gap *= k; total = maxH;
+    }
+    fs = Math.max(2, fs);
+
+    return { fs: fs, nfs: nfs, gap: gap, T: T, fitted: fitted,
+             codeY: nm ? -total / 2 + fs / 2 : 0,
+             nameY: nm ? -total / 2 + fs + gap + nfs / 2 : 0 };
+  }
+
+  // the name as configured: first name or full name
+  function nameOf(rec) {
+    if (!rec.caption) return '';
+    var n = $('nameMode').value === 'full' ? rec.caption : rec.caption.split(/\s+/)[0];
+    return $('optNameUpper').checked ? n.toUpperCase() : n;
+  }
+
+  // what the card shows: code, name, or both. A name-only card with no name on the
+  // record falls back to the code so no card comes out blank.
+  function contentOf(rec) {
+    var mode = $('showMode').value, nm = nameOf(rec);
+    if (mode === 'code') return { main: rec.code, sub: '' };
+    if (mode === 'name') return { main: nm || rec.code, sub: '' };
+    return { main: rec.code, sub: nm };
+  }
+
+  /* ---------------- page number ---------------- */
+
+  var PAGENUM_MM = 4.5;                                     // bold, fixed height
+
+  // y position just below the card block, or null when there is no room
+  function pageNumY(L) {
+    var below = L.ph - (L.startY + L.blockH);
+    return below < 5 ? null : L.startY + L.blockH + Math.min(below * 0.6, 9);
+  }
+
+  function pageNumText(p, total) {
+    var mode = $('pageNum').value;
+    if (mode === 'off') return '';
+    if (mode === 'plain') return String(p + 1);
+    if (mode === 'page') return 'Page ' + (p + 1);
+    return 'Page ' + (p + 1) + ' of ' + total;
+  }
+
+  // the number sits on the white sheet, so it needs an ink colour of its own
+  function pageNumColour() {
+    var c = colours();
+    var lum = function (h) { var r = hexRgb(h); return 0.299 * r[0] + 0.587 * r[1] + 0.114 * r[2]; };
+    if (lum(c.fill) < 200) return c.fill;
+    if (lum(c.text) < 200) return c.text;
+    return '#111827';
+  }
+
+  // cut guides run along the sticker edges, extended across the page.
+  // With a zero gap, adjacent edges coincide — draw each line only once.
+  function guideLines(L) {
+    var v = [], h = [], c, r, p;
+    for (c = 0; c < L.cols; c++) {
+      p = L.startX + c * (L.w + L.gapX);
+      v.push(p, p + L.w);
+    }
+    for (r = 0; r < L.rows; r++) {
+      p = L.startY + r * (L.h + L.gapY);
+      h.push(p, p + L.h);
+    }
+    return { v: dedupe(v), h: dedupe(h) };
+  }
+
+  function dedupe(list) {
+    var seen = {}, out = [];
+    list.forEach(function (n) {
+      var k = n.toFixed(2);
+      if (!seen[k]) { seen[k] = 1; out.push(n); }
+    });
+    return out;
+  }
+
+  function esc(s) {
+    return String(s).replace(/[&<>]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c];
+    });
+  }
+
+  /* ---------------- colours ---------------- */
+
+  var SCHEMES = {
+    indigo:        { fill: '#342382', text: '#ffffff', border: '#ffffff' },
+    indigoOutline: { fill: '#ffffff', text: '#342382', border: '#342382' },
+    black:         { fill: '#ffffff', text: '#000000', border: '#000000' }
+  };
+  var FILL_SWATCHES = [
+    '#342382', '#1d4ed8', '#0e7490', '#0f5132', '#166534', '#854d0e', '#b45309', '#7a1020',
+    '#9d174d', '#6b21a8', '#111827', '#374151', '#9ca3af', '#e5e7eb', '#f8fafc', '#ffffff'
+  ];
+
+  // pick black or white text for a given background
+  function readableOn(hex) {
+    var c = hexRgb(hex);
+    return (0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]) < 145 ? '#ffffff' : '#111827';
+  }
+
+  function colours() {
+    return { fill: $('cFill').value, text: $('cText').value, border: $('cBorder').value };
+  }
+
+  function hexRgb(h) {
+    h = String(h).replace('#', '');
+    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+    return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+  }
+
+  /* ---------------- preview (DOM) ---------------- */
+
+  function render() {
+    records = parse($('paste').value);
+    layout = computeLayout(records.length);
+
+    var L = layout, host = $('pages');
+    host.innerHTML = '';
+    $('cCount').textContent = records.length;
+    $('cPages').textContent = records.length ? L.pages.length : 0;
+    $('cPage').textContent = 'A4 ' + (L.land ? 'landscape' : 'portrait') +
+                             ' · ' + L.pw + ' × ' + L.ph + ' mm';
+    $('cSize').textContent = L.w + ' × ' + L.h + ' mm';
+
+    // the preview pages and the print sheet follow the chosen orientation
+    document.documentElement.style.setProperty('--pw', L.pw + 'mm');
+    document.documentElement.style.setProperty('--ph', L.ph + 'mm');
+    $('printStyle').textContent =
+      '@media print{@page{size:' + L.pw + 'mm ' + L.ph + 'mm;margin:0}}';
+    $('cPer').textContent = L.per + ' (' + L.cols + ' × ' + L.rows + ')';
+    $('cGap').textContent = L.gapX + ' / ' + L.gapY + ' mm · at ' + L.startX.toFixed(1) +
+                            ', ' + L.startY.toFixed(1) + ' mm';
+
+    var wanted = num('boxW', 63), wantedH = num('boxH', 38), msgs = [];
+    if (wanted > L.w || wantedH > L.h) {
+      msgs.push('Card clipped to ' + L.w + ' × ' + L.h + ' mm — it does not fit the page ' +
+                'with these margins.');
+    }
+    if (L.needRow > 0 && L.needRow <= 12) {
+      msgs.push('One more row (' + (L.rows + 1) + ' total) needs ' + L.needRow.toFixed(1) +
+                ' mm more height — trim the top/bottom margins or the row gap by that much.');
+    }
+    if (L.needCol > 0 && L.needCol <= 12) {
+      msgs.push('One more column (' + (L.cols + 1) + ' total) needs ' + L.needCol.toFixed(1) +
+                ' mm more width.');
+    }
+    $('warn').innerHTML = msgs.length ? '<div class="warn">' + msgs.join('<br>') + '</div>' : '';
+
+    // slider readouts, measured against the first record
+    var probeC = records.length ? contentOf(records[0]) : { main: 'EMP0000', sub: '' };
+    var probe = fitBlock(probeC.main, probeC.sub, L);
+    $('vCodeSize').textContent = num('codeSize', 100) + '% · ' + probe.fs.toFixed(1) + ' mm (' +
+                                 Math.round(mm2pt(probe.fs)) + ' pt)';
+    $('vNameSize').textContent = num('nameSize', 42) + '% · ' +
+                                 (probe.nfs ? probe.nfs.toFixed(1) + ' mm' : 'no name');
+    $('vLineGap').textContent = num('lineGap', 22) + '% · ' + probe.gap.toFixed(1) + ' mm';
+
+    if (!records.length) {
+      host.innerHTML = '<div class="empty">Upload a file or paste employee codes to see the A4 preview.</div>';
+      return;
+    }
+
+    L.pages.forEach(function (range, p) {
+      var wrap = document.createElement('div'); wrap.className = 'page-wrap';
+      var page = document.createElement('div'); page.className = 'page';
+
+      if ($('optCut').checked) {
+        var g = guideLines(L);
+        g.v.forEach(function (x) { page.appendChild(guide(x, true)); });
+        g.h.forEach(function (y) { page.appendChild(guide(y, false)); });
+      }
+
+      var C = colours();
+      for (var i = range[0]; i < range[1]; i++) {
+        var rec = records[i], pos = boxAt(i - range[0], L);
+        var ct = contentOf(rec), nm = ct.sub, b = fitBlock(ct.main, nm, L);
+        var el = document.createElement('div');
+        el.className = 'box';
+        el.style.cssText =
+          'left:' + pos.x + 'mm;top:' + pos.y + 'mm;width:' + L.w + 'mm;height:' + L.h + 'mm;' +
+          'padding:' + bInset(L) + 'mm;background:' + C.fill + ';color:' + C.text + ';' +
+          'font-family:' + b.T.css + ';';
+        el.innerHTML =
+          '<div class="inner" style="' + (lineCount(L)
+              ? 'border:' + frame(L) + 'mm ' + (lineCount(L) === 2 ? 'double' : 'solid') +
+                ' ' + C.border + ';' : '') +
+            'padding:' + pad(L) + 'mm">' +
+            '<div class="code" style="font-size:' + b.fs + 'mm;font-weight:' + b.T.codeWeight +
+              '">' + esc(ct.main) + '</div>' +
+            (nm ? '<div class="cap" style="font-size:' + b.nfs + 'mm;margin-top:' + b.gap +
+                  'mm;color:' + C.text + ';font-weight:' + b.T.nameWeight +
+                  ';font-style:' + (b.T.nameItalic ? 'italic' : 'normal') + '">' +
+                  esc(nm) + '</div>' : '') +
+          '</div>';
+        page.appendChild(el);
+      }
+
+      var pnTxt = pageNumText(p, L.pages.length), pnY = pageNumY(L);
+      if (pnTxt && pnY !== null) {
+        var pn = document.createElement('div');
+        pn.style.cssText = 'position:absolute;left:0;width:100%;text-align:center;top:' +
+          (pnY - PAGENUM_MM / 2) + 'mm;font-family:' + typo().css + ';font-weight:700;' +
+          'font-size:' + PAGENUM_MM + 'mm;line-height:1;color:' + pageNumColour() + ';';
+        pn.textContent = pnTxt;
+        page.appendChild(pn);
+      }
+
+      wrap.appendChild(page);
+      var num2 = document.createElement('div');
+      num2.className = 'pagenum';
+      num2.textContent = 'Page ' + (p + 1) + ' of ' + L.pages.length +
+                         ' — ' + (range[1] - range[0]) + ' stickers';
+      host.appendChild(wrap);
+      host.appendChild(num2);
+    });
+  }
+
+  function guide(at, vertical) {
+    var d = document.createElement('div');
+    d.style.cssText = 'position:absolute;background:#c8c8c8;' + (vertical
+      ? 'left:' + at + 'mm;top:0;width:.2mm;height:' + layout.ph + 'mm'
+      : 'top:' + at + 'mm;left:0;height:.2mm;width:' + layout.pw + 'mm');
+    return d;
+  }
+
+  /* ---------------- PDF (vector, exact A4) ---------------- */
+
+  function mm2pt(mm) { return mm * 72 / 25.4; }
+  function pt2mm(pt) { return pt * 25.4 / 72; }
+
+  function exportPdf() {
+    if (!guard()) return;
+    if (!(window.jspdf && window.jspdf.jsPDF)) {
+      alert('PDF library not loaded (it is fetched from a CDN on first open).\n' +
+            'Use "Print" and choose "Save as PDF" instead.');
+      return;
+    }
+
+    var L = layout, C = colours();
+    var fillC = hexRgb(C.fill), borderC = hexRgb(C.border), textC = hexRgb(C.text);
+    var orient = L.land ? 'landscape' : 'portrait';
+    var doc = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4', orientation: orient });
+
+    L.pages.forEach(function (range, p) {
+      if (p) doc.addPage('a4', orient);
+
+      if ($('optCut').checked) {
+        var g = guideLines(L);
+        doc.setDrawColor(200); doc.setLineWidth(0.1);
+        g.v.forEach(function (x) { doc.line(x, 0, x, L.ph); });
+        g.h.forEach(function (y) { doc.line(0, y, L.pw, y); });
+      }
+      for (var i = range[0]; i < range[1]; i++) {
+        var rec = records[i];
+        if (!rec) continue;
+        var pos = boxAt(i - range[0], L);
+        var ct = contentOf(rec), nm = ct.sub, blk = fitBlock(ct.main, nm, L);
+
+        // Re-assert colours for every card: drawing text sets the PDF fill colour to the
+        // text colour, which would otherwise leak into the next card's background.
+        doc.setFillColor(fillC[0], fillC[1], fillC[2]);
+        doc.setDrawColor(borderC[0], borderC[1], borderC[2]);
+
+        // solid card background, then one or two border rectangles
+        doc.rect(pos.x, pos.y, L.w, L.h, 'F');
+        if (lineCount(L)) {
+          doc.setLineWidth(L.bw);
+          var o1 = bInset(L) + L.bw / 2;
+          doc.rect(pos.x + o1, pos.y + o1, L.w - 2 * o1, L.h - 2 * o1);
+          if (lineCount(L) === 2) {
+            var o2 = bInset(L) + L.bw + L.bgap + L.bw / 2;
+            doc.rect(pos.x + o2, pos.y + o2, L.w - 2 * o2, L.h - 2 * o2);
+          }
+        }
+
+        var maxW = innerW(L);
+        var cx = pos.x + L.w / 2, cy = pos.y + L.h / 2;
+
+        // code — re-fitted with the PDF's own font metrics
+        doc.setTextColor(textC[0], textC[1], textC[2]);
+        doc.setFont(blk.T.pdf, blk.T.pdfCodeStyle);
+        var size = mm2pt(blk.fs);
+        doc.setFontSize(size);
+        while (doc.getTextWidth(ct.main) > maxW && size > 3) { size -= 0.5; doc.setFontSize(size); }
+        doc.text(ct.main, cx, cy + blk.codeY, { align: 'center', baseline: 'middle' });
+
+        if (nm) {
+          doc.setFont(blk.T.pdf, blk.T.pdfNameStyle);
+          var nsize = mm2pt(blk.nfs);
+          doc.setFontSize(nsize);
+          while (doc.getTextWidth(nm) > maxW && nsize > 3) { nsize -= 0.5; doc.setFontSize(nsize); }
+          doc.text(nm, cx, cy + blk.nameY, { align: 'center', baseline: 'middle' });
+        }
+      }
+
+      var pnTxt = pageNumText(p, L.pages.length), pnY = pageNumY(L);
+      if (pnTxt && pnY !== null) {
+        var pc = hexRgb(pageNumColour());
+        doc.setTextColor(pc[0], pc[1], pc[2]);
+        doc.setFont(typo().pdf, 'bold');
+        doc.setFontSize(mm2pt(PAGENUM_MM));
+        doc.text(pnTxt, L.pw / 2, pnY, { align: 'center', baseline: 'middle' });
+      }
+    });
+
+    doc.save(name() + '.pdf');
+  }
+
+  /* ---------------- PNG (300 DPI, one file per page) ---------------- */
+
+  function exportPng() {
+    if (!guard()) return;
+    var L = layout, S = 300 / 25.4, C = colours();
+
+    L.pages.forEach(function (range, p) {
+      var cv = document.createElement('canvas');
+      cv.width = Math.round(L.pw * S);
+      cv.height = Math.round(L.ph * S);
+      var x = cv.getContext('2d');
+      x.fillStyle = '#fff'; x.fillRect(0, 0, cv.width, cv.height);
+      x.textAlign = 'center'; x.textBaseline = 'middle';
+
+      if ($('optCut').checked) {
+        var g = guideLines(L);
+        x.strokeStyle = '#c8c8c8'; x.lineWidth = 0.1 * S;
+        g.v.forEach(function (vx) {
+          x.beginPath(); x.moveTo(vx * S, 0); x.lineTo(vx * S, cv.height); x.stroke();
+        });
+        g.h.forEach(function (vy) {
+          x.beginPath(); x.moveTo(0, vy * S); x.lineTo(cv.width, vy * S); x.stroke();
+        });
+      }
+      x.strokeStyle = C.border;
+
+      for (var i = range[0]; i < range[1]; i++) {
+        var rec = records[i], pos = boxAt(i - range[0], L);
+        var ct = contentOf(rec), nm = ct.sub, blk = fitBlock(ct.main, nm, L);
+
+        x.fillStyle = C.fill;
+        x.fillRect(pos.x * S, pos.y * S, L.w * S, L.h * S);
+
+        if (lineCount(L)) {
+          x.lineWidth = L.bw * S;
+          var o1 = bInset(L) + L.bw / 2;
+          x.strokeRect((pos.x + o1) * S, (pos.y + o1) * S, (L.w - 2 * o1) * S, (L.h - 2 * o1) * S);
+          if (lineCount(L) === 2) {
+            var o2 = bInset(L) + L.bw + L.bgap + L.bw / 2;
+            x.strokeRect((pos.x + o2) * S, (pos.y + o2) * S, (L.w - 2 * o2) * S, (L.h - 2 * o2) * S);
+          }
+        }
+
+        var cx = (pos.x + L.w / 2) * S, cy = (pos.y + L.h / 2) * S;
+        x.fillStyle = C.text;
+        x.font = cssFont(blk.fs * S, blk.T.codeWeight, blk.T.codeItalic, blk.T.css);
+        x.fillText(ct.main, cx, cy + blk.codeY * S, innerW(L) * S);
+
+        if (nm) {
+          x.font = cssFont(blk.nfs * S, blk.T.nameWeight, blk.T.nameItalic, blk.T.css);
+          x.fillText(nm, cx, cy + blk.nameY * S, innerW(L) * S);
+        }
+      }
+
+      var pnTxt = pageNumText(p, L.pages.length), pnY = pageNumY(L);
+      if (pnTxt && pnY !== null) {
+        x.fillStyle = pageNumColour();
+        x.font = cssFont(PAGENUM_MM * S, '700', false, typo().css);
+        x.fillText(pnTxt, (L.pw / 2) * S, pnY * S);
+      }
+
+      cv.toBlob(function (blob) { saveBlob(blob, name() + '-page-' + (p + 1) + '.png'); }, 'image/png');
+    });
+  }
+
+  /* ---------------- SVG (one file per page) ---------------- */
+
+  function rectSvg(x, y, w, h, sw, stroke, fill) {
+    return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h +
+           '" fill="' + (fill || 'none') + '"' +
+           (sw ? ' stroke="' + stroke + '" stroke-width="' + sw + '"' : '') + '/>';
+  }
+
+  function exportSvg() {
+    if (!guard()) return;
+    var L = layout, C = colours();
+
+    L.pages.forEach(function (range, p) {
+      var s = '<svg xmlns="http://www.w3.org/2000/svg" width="' + L.pw + 'mm" height="' +
+              L.ph + 'mm" viewBox="0 0 ' + L.pw + ' ' + L.ph + '"><rect width="' + L.pw +
+              '" height="' + L.ph + '" fill="#fff"/>';
+
+      if ($('optCut').checked) {
+        var g = guideLines(L);
+        g.v.forEach(function (x) {
+          s += '<line x1="' + x + '" y1="0" x2="' + x + '" y2="297" stroke="#c8c8c8" stroke-width="0.1"/>';
+        });
+        g.h.forEach(function (y) {
+          s += '<line x1="0" y1="' + y + '" x2="210" y2="' + y + '" stroke="#c8c8c8" stroke-width="0.1"/>';
+        });
+      }
+
+      for (var i = range[0]; i < range[1]; i++) {
+        var rec = records[i], pos = boxAt(i - range[0], L);
+        var ct = contentOf(rec), nm = ct.sub, blk = fitBlock(ct.main, nm, L);
+        var o1 = bInset(L) + L.bw / 2, o2 = bInset(L) + L.bw + L.bgap + L.bw / 2;
+        var cx = pos.x + L.w / 2, cy = pos.y + L.h / 2;
+
+        s += rectSvg(pos.x, pos.y, L.w, L.h, 0, null, C.fill) +
+             (lineCount(L)
+               ? rectSvg(pos.x + o1, pos.y + o1, L.w - 2 * o1, L.h - 2 * o1, L.bw, C.border) : '') +
+             (lineCount(L) === 2
+               ? rectSvg(pos.x + o2, pos.y + o2, L.w - 2 * o2, L.h - 2 * o2, L.bw, C.border) : '') +
+             '<text x="' + cx + '" y="' + (cy + blk.codeY) +
+               '" text-anchor="middle" dominant-baseline="central" font-family="' +
+               esc(blk.T.css) + '" font-weight="' + blk.T.codeWeight + '" font-size="' +
+               blk.fs + '" fill="' + C.text + '">' + esc(ct.main) + '</text>';
+
+        if (nm) {
+          s += '<text x="' + cx + '" y="' + (cy + blk.nameY) +
+               '" text-anchor="middle" dominant-baseline="central" font-family="' +
+               esc(blk.T.css) + '" font-weight="' + blk.T.nameWeight + '" font-style="' +
+               (blk.T.nameItalic ? 'italic' : 'normal') + '" font-size="' + blk.nfs +
+               '" fill="' + C.text + '">' + esc(nm) + '</text>';
+        }
+      }
+
+      var pnTxt = pageNumText(p, L.pages.length), pnY = pageNumY(L);
+      if (pnTxt && pnY !== null) {
+        s += '<text x="' + (L.pw / 2) + '" y="' + pnY + '" text-anchor="middle" ' +
+             'dominant-baseline="central" font-family="' + esc(typo().css) + '" ' +
+             'font-weight="700" font-size="' + PAGENUM_MM + '" fill="' + pageNumColour() +
+             '">' + esc(pnTxt) + '</text>';
+      }
+
+      s += '</svg>';
+      saveBlob(new Blob([s], { type: 'image/svg+xml' }), name() + '-page-' + (p + 1) + '.svg');
+    });
+  }
+
+  /* ---------------- CSV ---------------- */
+
+  function exportCsv() {
+    if (!guard()) return;
+    var L = layout, rows = ['Employee Code,Name,Page,Position'];
+    L.pages.forEach(function (range, p) {
+      for (var i = range[0]; i < range[1]; i++) {
+        rows.push('"' + records[i].code.replace(/"/g, '""') + '","' +
+                  nameOf(records[i]).replace(/"/g, '""') + '",' +
+                  (p + 1) + ',' + (i - range[0] + 1));
+      }
+    });
+    saveBlob(new Blob([rows.join('\n')], { type: 'text/csv' }), name() + '.csv');
+  }
+
+  /* ---------------- helpers ---------------- */
+
+  function guard() {
+    if (!records.length) { alert('Add some employee codes first.'); return false; }
+    return true;
+  }
+
+  function name() {
+    return ($('fname').value || 'seating-stickers').replace(/[\\/:*?"<>|]/g, '-');
+  }
+
+  function saveBlob(blob, filename) {
+    var url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 1500);
+  }
+
+  /* ---------------- wiring ---------------- */
+
+  var drop = $('drop'), fileInput = $('file');
+
+  drop.addEventListener('click', function () { fileInput.click(); });
+  drop.addEventListener('dragover', function (e) { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', function () { drop.classList.remove('over'); });
+  drop.addEventListener('drop', function (e) {
+    e.preventDefault();
+    drop.classList.remove('over');
+    if (e.dataTransfer.files[0]) readFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', function () {
+    if (fileInput.files[0]) readFile(fileInput.files[0]);
+  });
+
+  function readFile(f) {
+    var fr = new FileReader();
+    fr.onload = function () {
+      $('paste').value = String(fr.result);
+      if (!$('fname').value || $('fname').value === 'seating-stickers') {
+        $('fname').value = f.name.replace(/\.[^.]+$/, '') || 'seating-stickers';
+      }
+      render();
+    };
+    fr.readAsText(f);
+  }
+
+  /* colour controls: scheme presets, palette swatches, wells and hex fields */
+
+  var COLOR_IDS = { cFill: 'hFill', cText: 'hText', cBorder: 'hBorder' };
+
+  function setColours(fill, text, border, from) {
+    if (fill) $('cFill').value = fill;
+    if (text) $('cText').value = text;
+    if (border) $('cBorder').value = border;
+    syncHex();
+    markScheme(from);
+    markSwatches();
+    render();
+  }
+
+  function syncHex() {
+    Object.keys(COLOR_IDS).forEach(function (id) { $(COLOR_IDS[id]).value = $(id).value; });
+  }
+
+  function markScheme(force) {
+    if (force) { $('scheme').value = force; return; }
+    var c = colours(), match = 'custom';
+    Object.keys(SCHEMES).forEach(function (k) {
+      var s = SCHEMES[k];
+      if (s.fill === c.fill && s.text === c.text && s.border === c.border) match = k;
+    });
+    $('scheme').value = match;
+  }
+
+  function markSwatches() {
+    var fill = $('cFill').value.toLowerCase();
+    Array.prototype.forEach.call($('swatches').children, function (b) {
+      b.className = (b.dataset.color === fill) ? 'on' : '';
+    });
+  }
+
+  FILL_SWATCHES.forEach(function (hex) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.dataset.color = hex;
+    b.style.background = hex;
+    b.title = hex + ' — sets fill (text and border auto-contrast)';
+    b.addEventListener('click', function () {
+      var ink = readableOn(hex);
+      setColours(hex, ink, ink);
+    });
+    $('swatches').appendChild(b);
+  });
+
+  $('scheme').addEventListener('change', function () {
+    var s = SCHEMES[$('scheme').value];
+    if (s) setColours(s.fill, s.text, s.border, $('scheme').value); else syncHex();
+  });
+
+  Object.keys(COLOR_IDS).forEach(function (cid) {
+    $(cid).addEventListener('input', function () { syncHex(); markScheme(); markSwatches(); render(); });
+    $(COLOR_IDS[cid]).addEventListener('input', function () {
+      var v = $(COLOR_IDS[cid]).value.trim();
+      if (v[0] !== '#') v = '#' + v;
+      if (/^#[0-9a-f]{6}$/i.test(v)) { $(cid).value = v; markScheme(); markSwatches(); render(); }
+    });
+    $(COLOR_IDS[cid]).addEventListener('blur', syncHex);
+  });
+
+  $('btnSwap').addEventListener('click', function () {
+    var c = colours();
+    setColours(c.text, c.fill, c.fill === c.border ? c.text : c.border);
+  });
+
+  $('preset').addEventListener('change', function () {
+    var v = $('preset').value;
+    if (v === 'custom') return;
+    var parts = v.split(':');                 // "WxH" or "WxH:landscape"
+    var d = parts[0].split('x');
+    if (parts[1]) $('orient').value = parts[1];
+    $('boxW').value = d[0];
+    $('boxH').value = d[1];
+    render();
+  });
+
+  ['boxW', 'boxH', 'orient'].forEach(function (id) {
+    $(id).addEventListener('input', matchPreset);
+    $(id).addEventListener('change', matchPreset);
+  });
+
+  function matchPreset() {
+    var dims = $('boxW').value + 'x' + $('boxH').value;
+    var keys = [dims + ':' + $('orient').value, dims];
+    var opts = $('preset').options, found = 'custom';
+    for (var i = 0; i < opts.length; i++) {
+      if (keys.indexOf(opts[i].value) > -1 &&
+          (opts[i].value.indexOf(':') > -1 || $('orient').value === 'portrait')) {
+        found = opts[i].value;
+      }
+    }
+    $('preset').value = found;
+  }
+
+  ['paste', 'showMode', 'nameMode', 'pageNum', 'optUpper', 'optNameUpper', 'optDedupe',
+   'boxW', 'boxH', 'orient', 'marginTop', 'marginBottom', 'marginSide',
+   'gapX', 'gapY', 'align', 'borderStyle', 'bw', 'bgap', 'optCut',
+   'fontFamily', 'codeSize', 'codeWeight', 'nameSize', 'nameStyle', 'lineGap'].forEach(function (id) {
+    $(id).addEventListener('input', render);
+    $(id).addEventListener('change', render);
+  });
+
+  var zoom = $('zoom');
+  function applyZoom() {
+    document.documentElement.style.setProperty('--scale', (zoom.value / 100).toString());
+    $('zoomVal').textContent = zoom.value + '%';
+  }
+  zoom.addEventListener('input', applyZoom);
+
+  $('btnPdf').addEventListener('click', exportPdf);
+  $('btnPng').addEventListener('click', exportPng);
+  $('btnSvg').addEventListener('click', exportSvg);
+  $('btnCsv').addEventListener('click', exportCsv);
+  $('btnPrint').addEventListener('click', function () { if (guard()) window.print(); });
+
+  // sample data so the first open is never blank
+  $('paste').value = ['EMP1001, Anita Rao', 'EMP1002, Brian Chen', 'EMP1003, Chandra Kumar',
+                      'EMP1004, Divya Menon', 'EMP1005, Eshan Patel', 'EMP1006, Farida Khan',
+                      'EMP1007, Gaurav Singh'].join('\n');
+  applyZoom();
+  syncHex();
+  markSwatches();
+  render();
+})();
+</script>
+</body>
+</html>

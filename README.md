@@ -1,11 +1,59 @@
-# Employee Code & Seating Card Generator
+# Browser Tools
+
+A small collection of single-page browser tools, published with GitHub Pages. The site
+root is a dashboard that lists every tool; each tool lives in its own folder and is a
+self-contained HTML file with no build step.
+
+**Live site:** https://kanagasabai-hub.github.io/<your-repo>/
+*(update this link once the repository exists)*
+
+## Adding a new tool
+
+1. Create `tools/<your-tool>/index.html` — a single self-contained page.
+2. Add one entry to `tools.js`:
+
+   ```js
+   {
+     id: 'your-tool',
+     name: 'Your Tool',
+     description: 'One or two sentences about what it does.',
+     href: 'tools/your-tool/',
+     icon: '📐',
+     tags: ['print', 'csv'],
+     status: 'live',          // live | beta | planned
+     updated: '2026-09-07'
+   }
+   ```
+
+3. Commit and push. The dashboard rebuilds itself from that list — search, tag filters and
+   the tool count all update automatically. Entries with `status: 'planned'` (or
+   `href: null`) render as a dimmed "In progress" card that isn't clickable, so you can
+   advertise what's coming.
+
+`tools.js` is a plain script rather than JSON on purpose: it loads over `file://` too, so
+the dashboard works when you just double-click `index.html` locally.
+
+## Repository layout
+
+```
+index.html                          dashboard — lists every tool
+tools.js                            the tool registry (edit this to add a tool)
+404.html                            friendly not-found page, links back to the dashboard
+formatter.html                      redirect kept from before the restructure
+.nojekyll                           serve files as-is, no Jekyll
+tools/
+  employee-cards/
+    index.html                      the card generator
+    sample-employee-codes.csv       synthetic sample data — not real people
+```
+
+---
+
+# Tool: Employee Code & Seating Cards
 
 Turn a list of employee codes and names into print-ready A4 sheets of bordered cards —
 seating stickers, label sheets, name badges or large guest tiles — and export them as
 **PDF, PNG, SVG** or send them straight to the printer.
-
-**Live app:** https://kanagasabai-hub.github.io/employee-card-generator/
-*(update this link to match your repository name)*
 
 ## Privacy
 
@@ -55,32 +103,19 @@ most reliable route to a printer.
 
 ## Publishing to GitHub Pages
 
-The whole app is one static file, so no build step is required.
+Everything is static, so no build step and no workflow file are required.
 
 ```bash
-git init
-git add .
-git commit -m "Employee card generator"
-git branch -M main
 git remote add origin https://github.com/<your-user>/<your-repo>.git
 git push -u origin main
 ```
 
 Then in the repository: **Settings → Pages → Build and deployment → Source: Deploy from a
-branch**, branch `main`, folder `/ (root)`. The site appears at
-`https://<your-user>.github.io/<your-repo>/` within a minute or two.
+branch**, branch `main`, folder `/ (root)`. The dashboard appears at
+`https://<your-user>.github.io/<your-repo>/` and each tool at
+`https://<your-user>.github.io/<your-repo>/tools/<name>/`.
 
-`.nojekyll` is included so GitHub serves the files as-is instead of running them through
-Jekyll.
-
-## Repository contents
-
-| File | Purpose |
-|---|---|
-| `index.html` | The entire application — HTML, CSS and JS in one file |
-| `formatter.html` | Redirect to `index.html` (the app's former filename) |
-| `sample-employee-codes.csv` | Synthetic sample data for testing — not real people |
-| `.nojekyll` | Tells GitHub Pages to skip Jekyll processing |
+Note that GitHub Pages needs a **public** repository on a free account.
 
 ## Dependencies
 
