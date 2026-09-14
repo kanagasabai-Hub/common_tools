@@ -20,6 +20,16 @@
 
 window.TOOLS = [
   {
+    id: 'paint-mixer',
+    name: 'Paint Mixing Studio',
+    description: 'Explore 60 paint recipes with animated 3D mixing, playback up to 64×, five mixing motions, and liquid dilution/body controls. Export CSV, JSON, PNG, SVG or printable sheets.',
+    href: 'tools/paint-mixer/index.html',
+    icon: '🖌️',
+    tags: ['design', 'paint', 'color', 'artist', '3d', 'csv'],
+    status: 'live',
+    updated: '2026-09-14'
+  },
+  {
     id: 'employee-cards',
     name: 'Employee Code & Seating Cards',
     description: 'Lay out employee codes and names as bordered cards on A4 — seating ' +

@@ -48,7 +48,7 @@ recipe.pattern='custom';recipe.customShape='text';recipe.customText='<svg>';awai
 const cssFile=await exported('exportCSS');assert((await cssFile.text()).includes('data:image/svg+xml,'),'CSS export is self-contained');
 const uri=d.getElementById('code').textContent.match(/url\("(.*?)"\)/)[1];const bg=d.createElement('div');bg.style.cssText='width:100px;height:100px;background-image:url("'+uri+'");';d.body.append(bg);assert(w.getComputedStyle(bg).backgroundImage!=='none','Pattern CSS parses in browser');bg.remove();
 click('save');assert(+d.getElementById('savedCount').textContent>0,'Pattern saved');assert(errors.length===0,'No pattern runtime errors');
-await load('../index.html');assert(d.querySelectorAll('a.card').length===3,'Dashboard lists all three tools');for(const a of d.querySelectorAll('a.card'))assert((await fetch(a.href)).ok,'Dashboard route '+a.id+' resolves');
+await load('../index.html');assert(d.querySelectorAll('a.card').length===4,'Dashboard lists all four tools');for(const a of d.querySelectorAll('a.card'))assert((await fetch(a.href)).ok,'Dashboard route '+a.id+' resolves');
 document.getElementById('results').textContent=results.join('\n')+'\nALL TESTS PASSED ('+results.length+')';document.title='PASS — Studio tests';
 }catch(e){document.getElementById('results').textContent=results.join('\n')+'\nFAIL '+e.stack;document.title='FAIL — Studio tests';}finally{restoreStorage();}
 })();

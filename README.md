@@ -57,17 +57,26 @@ tools/
   pattern-generator/
     index.html                      pattern library and editor
     patterns.js                     130 vector recipes and exports
+  paint-mixer/
+    index.html                      paint recipes and animated mixing bowl
+    paint-model.js                  unit conversions and approximate RYB mixing
+    paint-scene.js                  dependency-free WebGL / Canvas renderer
+    paint-library.js                60 original color mixing references
+    paint-mixer.js                  editor, batch scaling and recipe exports
+    paint-mixer.css                 paint studio layout and print stylesheet
   design-studio.css                 shared responsive design-tool styles
   studio-common.js                  shared local utilities
 tests/
   studio-smoke.html                 browser integration and export checks
+  paint-model.test.cjs              paint arithmetic and validation checks
+  paint-browser.html                paint editor, 3D and export integration checks
 ```
 
 ---
 
 # Design tools
 
-Open either tool from the dashboard. Both are dependency-free and work offline, including
+Open the design tools from the dashboard. All are dependency-free and work offline, including
 when opened from disk. Keep their folders and the shared `tools/design-studio.css` and
 `tools/studio-common.js` files together.
 
@@ -121,7 +130,76 @@ creations are specific to the browser and origin; export JSON projects for porta
 backups. If browser storage is blocked or full, the tools still work and explain how
 to export a project. Nothing is uploaded, and no external assets or libraries load.
 
+## Paint Mixing Studio
+
+**Page:** [`tools/paint-mixer/index.html`](tools/paint-mixer/index.html)
+
+- Animated WebGL mixing bowl with a lit paint surface, colored droplets, swirling
+  ribbons, orbit/zoom controls, pause/replay, a blend-position slider, and eight speeds
+  from 0.5× through 64×. Five motions (circular, figure-eight, palette-knife fold,
+  fast agitation, incremental addition) have distinct previews and procedure notes;
+  they converge to the same estimated pigment color, not different chemical results.
+  A Canvas 2D preview is used when WebGL is unavailable. Reduced-motion preferences
+  start with a still, completed mix; animation can be started explicitly.
+- Add, name, recolor and remove up to **500 ingredients**. An 18-color paint box and
+  60 searchable recipes across ten color families provide generic references, not
+  measured brand pigments. Each card shows its predicted swatch and paint proportions.
+  Loading a reference replaces the paint ingredients while retaining medium/liquid settings.
+- Mix ml, liters, calibrated drops, US teaspoons/tablespoons and US fluid ounces in
+  one volume recipe. Switching units preserves volume. Percentage mode uses a target
+  batch volume, checks the total, and offers normalization to 100%.
+- Rescale batches without changing proportions. Per-ingredient relative tint
+  strength changes estimated color influence without changing material quantities.
+- Track up to 100 separate liquid additions: water, waterborne reducer, solvent,
+  acrylic liquid/glazing/pouring/gel mediums, oil medium, prepared flow improver,
+  retarder, or a custom liquid. Choose volume/drop units or **percent of paint volume**.
+  The product-system and medium-family checks flag mismatches or unverified compatibility;
+  no generic preset supplies a manufacturer-approved dilution ratio.
+- Paint percentages describe the paint batch before liquids. Final volume is the
+  nominal sum of paint and additions; rescaling in volume mode targets that final volume.
+  For example, 100 ml paint plus a 25%-of-paint addition produces 125 ml, not 100 ml.
+- Customize the base body, individual paint body and each liquid body on a relative
+  0–100 index. The illustrative blend uses a volume-weighted geometric mean of
+  `1 + body`, minus one. Thinner liquids lower the index; a higher-body medium can
+  raise it. This is **not measured rheology, cP, dry-film thickness or equipment calibration**.
+  Simulated motion uses the estimated mixture body. Clear liquids leave pigment-only
+  HEX unchanged while reducing the coat opacity by the paint-volume concentration.
+- JSON, CSV and TXT preserve liquid quantities, individual body inputs, procedure,
+  concentration, final volume and compatibility notes. SVG/PNG/PDF recipe sheets
+  include added liquids and a mixture summary. Earlier JSON recipes import with no
+  liquids and the circular motion as defaults.
+- Eleven medium presets: acrylic, watercolor, gouache, oil, alkyd, enamel, latex,
+  spray/automotive, airbrush, artist ink and tempera. Presets alter simulated flow,
+  gloss and visual coat coverage; they do not prescribe compatible products,
+  reducer/hardener ratios, drying shifts or calibrated pigment scattering.
+- Artist RYB approximation (including yellow + blue tending toward green), or an
+  RGB-average reference. **Neither is a spectral or manufacturer-calibrated paint
+  match.** Real pigment/binder combinations require physical test swatches.
+- Ingredient proportions, HEX/RGB/HSL estimates, a surface/coat preview, notes,
+  undo/redo, and up to 40 locally saved recipes.
+- Export **CSV, JSON, TXT, SVG recipe cards, PNG recipe cards, 3D PNG snapshots,
+  and Print / Save as PDF**. JSON imports restore editable recipes. Draft recipes
+  can be saved as JSON; finished recipe exports require positive quantities and,
+  in percentage mode, a 100% total. CSV guards spreadsheet formula-like text.
+- Very tall recipe cards (over 12,000 pixels or 16 million pixels total) use SVG,
+  CSV, JSON or PDF instead of PNG. All ingredient quantities are retained in those
+  formats. SVG/PNG cards shorten long names and direct you to the data exports for
+  full names and per-color tint strengths.
+
+Everything stays local. No dependencies, backend, credentials or uploads are needed.
+Reference links in the liquid panel point to GOLDEN's product information on
+[flow and pigment load](https://goldenartistcolors.com/resources/airbrush-tips-vol2)
+and [mediums and viscosity](https://goldenartistcolors.com/resources/open-acrylic-colors).
+Product-specific instructions take precedence over these illustrative controls.
+Drop volume must be calibrated to the actual dropper and paint. Physical conversions
+are volume-based; grams are deliberately excluded because paint density is unknown.
+
 ## Checking the design tools
+
+The paint tool has additional checks: run `node tests/paint-model.test.cjs` and open
+`http://127.0.0.1:8765/tests/paint-browser.html`. Add `?webgl` to require the 3D renderer
+in that browser test; otherwise a functioning Canvas fallback is accepted. The tests
+intercept downloads and restore saved recipes after testing.
 
 ```bash
 python -m http.server 8765 --bind 127.0.0.1
