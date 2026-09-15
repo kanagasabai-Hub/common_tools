@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b0d12"><meta name="color-scheme" content="dark">
+<meta name="description" content="Calibrate strings, air columns, bars and drums from their materials and dimensions, hear the physically predicted sound, play uploaded sheet music on the calibrated instrument and export WAV, MIDI, JSON, CSV and calibration sheets.">
+<title>Sound Lab — Browser Tools</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%230b0d12'/%3E%3Cpath d='M5 20h5l3-9 5 18 4-14 3 8 2-3h8' fill='none' stroke='%23f2a541' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="sound-lab.css"></head>
+<body>
+<header class="topbar"><a class="brand" href="../../index.html"><span class="brandmark">b.</span> Browser tools</a><nav aria-label="Tools"><a class="current" aria-current="page" href="index.html">Sound lab</a><a href="../paint-mixer/index.html">Paint mixer</a></nav><span class="local">Physics, synthesis and files stay on your device</span></header>
+<main class="shell">
+  <div class="intro">
+    <div><div class="eyebrow">ACOUSTIC CALIBRATION LAB</div><h1>Tune the physics. <span>Hear the result.</span></h1><p>Set materials, dimensions and adjustments. The lab predicts every partial, then plays it — note by note, or from your sheet music.</p></div>
+    <div class="actions"><button id="undo" title="Undo (Ctrl/⌘ Z)">↶ Undo</button><button id="redo" title="Redo (Ctrl/⌘ Shift Z)">↷ Redo</button><button id="save">+ Save instrument</button><button id="testTone" class="primary big">▶ Test tone</button></div>
+  </div>
+
+  <div class="lab-grid">
+    <aside class="panel controls" aria-label="Instrument settings">
+      <section class="section">
+        <div class="section-head"><h2>Instrument</h2><span class="badge" id="familyBadge">STRINGS</span></div>
+        <div class="family-tabs" id="familyTabs" role="tablist" aria-label="Instrument family"></div>
+        <label for="preset">Start from a calibrated preset</label><select id="preset"></select>
+        <label for="instrumentName">Name</label><input id="instrumentName" maxlength="120">
+      </section>
+      <section class="section calibration">
+        <div class="section-head"><h2>Calibration</h2><span class="step">01</span></div>
+        <div class="grid2"><div><label for="targetNote">Target note</label><input id="targetNote" class="mono" maxlength="5" autocomplete="off" spellcheck="false" placeholder="A4"></div><div><label for="a4">A4 reference (Hz)</label><input id="a4" type="number" min="400" max="480" step="0.1" value="440"></div></div>
+        <label for="tuneBy">Solve for</label><select id="tuneBy"></select>
+        <button id="calibrate" class="primary wide">◎ Calibrate to target</button>
+        <p id="calibrateStatus" class="help" role="status"></p>
+        <div id="overtoneBox" class="overtone" hidden><label for="overtoneRatio">Overtone tuning (mode 2 ÷ mode 1)</label><div class="row"><select id="overtoneRatio" class="grow"><option value="4">1 : 4 — marimba, vibraphone</option><option value="3">1 : 3 — xylophone</option><option value="3.5">1 : 3.5 — experimental</option></select><button id="tuneOvertone">Undercut</button></div><p class="help">Solves the arch depth, then re-tunes the pitch. Uses the finite-element bar model.</p></div>
+      </section>
+      <div id="paramSections"></div>
+      <section class="section"><div class="section-head"><h2>Checks</h2><span class="badge" id="warningCount">0</span></div><div id="warnings" class="warnings" role="status" aria-live="polite"></div></section>
+      <section class="section"><details><summary>Notes & saved instruments <span class="badge" id="savedCount">0</span></summary>
+        <label for="notes">Workshop notes</label><textarea id="notes" rows="4" maxlength="10000" placeholder="Maker, measurements taken, string brand, room temperature…"></textarea>
+        <div id="saved"></div><label for="importInstrument">Import an instrument (JSON)</label><input id="importInstrument" type="file" accept=".json,application/json">
+      </details></section>
+    </aside>
+
+    <div class="stage">
+      <section class="panel hero" id="previewPanel">
+        <div class="scene-top"><span class="renderer"><i class="live-dot"></i><span id="renderer">STARTING RENDERER</span></span><div class="row"><label class="sr-only" for="modeView">Vibration view</label><select id="modeView"><option value="">All modes · live</option></select><button id="resetView" title="Reset camera">↺ View</button><button id="fullscreen" class="icon" aria-label="Toggle fullscreen">⛶</button></div></div>
+        <div class="hero-body">
+          <div class="scene-wrap"><canvas id="scene" tabindex="0" aria-label="3D instrument. Drag or use arrow keys to orbit, scroll or plus and minus to zoom, double-click to reset."></canvas><div id="sceneOverlay" class="scene-overlay" aria-hidden="true"></div><div class="scene-hint">DRAG TO ORBIT · SCROLL TO ZOOM · CLICK A KEY TO PLAY</div><span id="slowMotion" class="slow-motion"></span></div>
+          <aside class="readout" aria-live="polite">
+            <span class="kicker">PREDICTED PITCH</span>
+            <div class="note-big"><strong id="noteName">E2</strong><span id="noteCents" class="cents">+0.0¢</span></div>
+            <div id="noteHz" class="hz mono">82.407 Hz</div>
+            <div class="tuner" aria-label="Offset from target"><div class="tuner-scale"><i></i><i></i><i></i><i></i><i></i></div><div class="tuner-needle" id="tunerNeedle"></div><div class="tuner-labels"><span>−50¢</span><span>0</span><span>+50¢</span></div></div>
+            <p id="targetLine" class="target-line"></p>
+            <div class="stats"><div><span>Brightness</span><strong id="statCentroid"></strong></div><div><span>Decay T60</span><strong id="statT60"></strong></div><div><span>Inharmonicity</span><strong id="statInharm"></strong></div><div><span>Playable range</span><strong id="statRange"></strong></div></div>
+            <dl id="metricList" class="metrics"></dl>
+          </aside>
+        </div>
+        <div class="transport">
+          <div class="slider"><label for="velocity">Velocity <output id="velocityOut">80%</output></label><input id="velocity" type="range" min="10" max="100" value="80"></div>
+          <div class="slider"><label for="hold">Hold <output id="holdOut">1.5 s</output></label><input id="hold" type="range" min="0.1" max="6" step="0.1" value="1.5"></div>
+          <div class="slider"><label for="volume">Volume <output id="volumeOut">70%</output></label><input id="volume" type="range" min="0" max="100" value="70"></div>
+          <label class="check"><input id="letRing" type="checkbox"> Let notes ring</label>
+          <button id="stopAll">■ Stop</button>
+        </div>
+      </section>
+
+      <section class="panel section keyboard-panel">
+        <div class="section-head"><div><h2>Play the calibrated instrument</h2><p class="help" id="keyInfo">Each key re-solves the physics for that pitch — fretting, tone holes, a new bar or pedal tension.</p></div><div class="row"><button id="octDown" aria-label="Octave down">−</button><span id="octaveLabel" class="badge mono">C2–B5</span><button id="octUp" aria-label="Octave up">+</button></div></div>
+        <div id="keyboard" class="keyboard" role="group" aria-label="Piano keyboard"></div>
+        <p class="help">Computer keys: <kbd>A</kbd> <kbd>W</kbd> <kbd>S</kbd> <kbd>E</kbd> <kbd>D</kbd> <kbd>F</kbd> <kbd>T</kbd> <kbd>G</kbd> <kbd>Y</kbd> <kbd>H</kbd> <kbd>U</kbd> <kbd>J</kbd> <kbd>K</kbd> play one octave from the lowest C shown; <kbd>Z</kbd>/<kbd>X</kbd> shift octaves. Dimmed keys are outside the playable range.</p>
+      </section>
+
+      <div class="analysis-grid">
+        <section class="panel section"><div class="section-head"><div><h2>Predicted spectrum</h2><p class="help">Partials by frequency and level. Dashed curve: body response (strings).</p></div><span class="badge" id="partialCount">0 PARTIALS</span></div>
+          <canvas id="spectrum" class="chart" aria-label="Predicted partial spectrum"></canvas>
+          <details><summary>Partial table</summary><div class="table-scroll"><table><thead><tr><th>#</th><th>Mode</th><th>Frequency</th><th>× f₀</th><th>Cents</th><th>Level</th><th>T60</th></tr></thead><tbody id="partialRows"></tbody></table></div></details>
+        </section>
+        <section class="panel section"><div class="section-head"><div><h2>Live output</h2><p class="help">Waveform and spectrum of what you hear.</p></div><span class="badge" id="liveState">IDLE</span></div>
+          <canvas id="scope" class="chart small-chart" aria-label="Live waveform"></canvas><canvas id="fft" class="chart small-chart" aria-label="Live spectrum"></canvas>
+        </section>
+      </div>
+
+      <section class="panel section score-panel">
+        <div class="section-head"><div><h2>Sheet music</h2><p class="help">Upload a score and hear it on the calibrated instrument. Everything is read locally.</p></div><span class="step">02</span></div>
+        <div class="score-grid">
+          <div>
+            <label class="drop" id="dropZone" for="scoreFile"><strong>Drop a score here</strong><span>or click to choose · MIDI · MusicXML · .mxl · ABC · text</span><input id="scoreFile" type="file" accept=".mid,.midi,.musicxml,.xml,.mxl,.abc,.txt,.csv"></label>
+            <div class="samples"><span>Try:</span><button data-sample="ode">Ode to Joy</button><button data-sample="greensleeves">Greensleeves (ABC)</button><button data-sample="bach">Minuet in G</button><button data-sample="scale">Range scale</button></div>
+            <details><summary>Type or paste notes</summary><textarea id="scoreText" rows="5" spellcheck="false" placeholder="tempo 100&#10;C4 D4 E4 F4 | G4*2 G4*2 | [C4 E4 G4]*4"></textarea><p class="help">Names like C4, F#3, Bb2. <code>/2</code> halves, <code>*2</code> doubles, <code>.</code> dots, <code>R</code> rests, <code>[C4 E4 G4]</code> chords. ABC and CSV (<code>start,beats,note</code>) also work.</p><button id="applyText">Load typed notes</button></details>
+          </div>
+          <div class="score-side">
+            <div id="scoreSummary" class="score-summary empty">No score loaded yet.</div>
+            <div class="grid2"><div><label for="scorePart">Part</label><select id="scorePart"><option value="all">All parts</option></select></div><div><label for="rangePolicy">Out-of-range notes</label><select id="rangePolicy"><option value="octave">Fold into range by octaves</option><option value="skip">Skip them</option><option value="extend">Play anyway (extrapolate)</option></select></div></div>
+            <div class="grid2"><div><label for="tempoScale">Tempo <output id="tempoOut">100%</output></label><input id="tempoScale" type="range" min="25" max="200" step="5" value="100"></div><div><label for="transpose">Transpose (semitones)</label><input id="transpose" type="number" min="-36" max="36" step="1" value="0"></div></div>
+            <div class="score-transport"><button id="playScore" class="primary" disabled>▶ Play score</button><button id="stopScore" disabled>■ Stop</button><progress id="renderProgress" max="1" value="0"></progress><span id="scoreTime" class="mono">0:00 / 0:00</span></div>
+            <div id="fitStats" class="fit-stats"></div>
+          </div>
+        </div>
+        <canvas id="pianoRoll" class="piano-roll" aria-label="Piano roll of the loaded score"></canvas>
+        <p id="scoreWarnings" class="help"></p>
+      </section>
+
+      <section class="panel section export-panel">
+        <div class="section-head"><div><h2>Export</h2><p class="help">Reproducible files: the same settings always render the same audio.</p></div><span class="step">03</span></div>
+        <div class="export-groups">
+          <div><h3>Calibration</h3><div class="export-buttons"><button id="exportJSON">↓ JSON</button><button id="exportCSV">↓ CSV partials</button><button id="exportTXT">↓ TXT report</button><button id="exportSVG">↓ SVG sheet</button><button id="exportPNG">↓ PNG sheet</button><button id="exportScene">↓ 3D snapshot</button><button id="printSheet">Print / PDF</button></div></div>
+          <div><h3>Audio & score</h3><div class="export-buttons"><button id="exportToneWAV">↓ WAV test tone</button><button id="exportScoreWAV" disabled>↓ WAV score</button><button id="exportMIDI" disabled>↓ MIDI as played</button></div></div>
+        </div>
+      </section>
+
+      <div class="model-note"><span>◉</span><p><strong>How accurate is it?</strong> Pitch uses textbook physics: Mersenne’s law with stiffness inharmonicity for strings, end-corrected air columns, finite-element Euler–Bernoulli bars with a Timoshenko shear correction, and Bessel modes for membranes. Decay, body resonance, excitation spectra and drum air loading are simplified or empirical. Material values are typical, not certified. Real instruments differ through construction, coupling, player technique and the room — measure and compare before cutting wood or ordering strings.</p></div>
+    </div>
+  </div>
+  <footer class="footer"><span>Calibrate in silence. Then listen.</span><span>Local processing · No account · No uploads <a class="link" href="../../index.html">All tools ↗</a></span></footer>
+</main>
+<section id="printArea" aria-label="Printable calibration sheet"></section>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<script src="vendor/three.min.js"></script>
+<script src="../studio-common.js"></script>
+<script src="sound-model.js"></script>
+<script src="sound-synth.js"></script>
+<script src="score-parser.js"></script>
+<script src="sound-scene.js"></script>
+<script src="sound-lab.js"></script>
+<script src="sound-score.js"></script>
+</body></html>

@@ -1,0 +1,116 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Sound lab browser checks</title><body><h1>Sound lab browser checks</h1><pre id="results">Running…</pre><iframe id="app" style="width:1440px;height:1000px;border:0"></iframe><script>
+(async()=>{
+  const lines=[],frame=document.getElementById('app');let w,d,saved={},errors=[],downloads=[];
+  const KEYS=['bt-sound-instruments','bt-sound-current'];
+  const wait=ms=>new Promise(r=>setTimeout(r,ms));
+  const assert=(ok,label)=>{if(!ok)throw Error(label);lines.push('PASS '+label);};
+  const $=id=>d.getElementById(id);
+  const change=(id,value,type='change')=>{const el=$(id);if(el.type==='checkbox')el.checked=value;else el.value=value;el.dispatchEvent(new w.Event(type,{bubbles:true}));};
+  async function exported(id){const n=downloads.length;$(id).click();for(let i=0;i<600&&downloads.length===n;i++)await wait(25);assert(downloads.length>n,id+' downloads');const a=downloads.at(-1);return {name:a.name,blob:await fetch(a.url).then(r=>r.blob())};}
+  async function upload(inputId,name,bytes,type){const dt=new w.DataTransfer();dt.items.add(new w.File([bytes],name,{type}));$('toast').textContent='';$(inputId).files=dt.files;$(inputId).dispatchEvent(new w.Event('change'));for(let i=0;i<200&&!$('toast').textContent;i++)await wait(20);return $('toast').textContent;}
+  async function zip(entries){ // minimal ZIP writer using the browser's raw deflate
+    const enc=new TextEncoder(),local=[],central=[];let offset=0;
+    for(const [name,text,method] of entries){
+      const data=enc.encode(text),body=method?new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer()):data,n=enc.encode(name);
+      const h=new Uint8Array(30+n.length),v=new DataView(h.buffer);v.setUint32(0,0x04034b50,true);v.setUint16(8,method,true);v.setUint32(18,body.length,true);v.setUint32(22,data.length,true);v.setUint16(26,n.length,true);h.set(n,30);
+      const c=new Uint8Array(46+n.length),cv=new DataView(c.buffer);cv.setUint32(0,0x02014b50,true);cv.setUint16(10,method,true);cv.setUint32(20,body.length,true);cv.setUint32(24,data.length,true);cv.setUint16(28,n.length,true);cv.setUint32(42,offset,true);c.set(n,46);
+      local.push(h,body);central.push(c);offset+=h.length+body.length;
+    }
+    const size=central.reduce((v,c)=>v+c.length,0),end=new Uint8Array(22),ev=new DataView(end.buffer);ev.setUint32(0,0x06054b50,true);ev.setUint16(10,entries.length,true);ev.setUint32(12,size,true);ev.setUint32(16,offset,true);
+    return new Blob([...local,...central,end]);
+  }
+  const MUSICXML=`<?xml version="1.0"?><score-partwise version="4.0"><work><work-title>Two part test</work-title></work>
+<part-list><score-part id="P1"><part-name>Melody</part-name></score-part><score-part id="P2"><part-name>Drums</part-name></score-part></part-list>
+<part id="P1"><measure number="1"><attributes><divisions>2</divisions><transpose><chromatic>-2</chromatic></transpose></attributes><direction><sound tempo="90"/></direction>
+<note><pitch><step>C</step><octave>5</octave></pitch><duration>2</duration></note>
+<note><pitch><step>E</step><alter>-1</alter><octave>5</octave></pitch><duration>2</duration><tie type="start"/></note>
+<note><pitch><step>E</step><alter>-1</alter><octave>5</octave></pitch><duration>4</duration><tie type="stop"/></note>
+<backup><duration>8</duration></backup>
+<note><pitch><step>C</step><octave>4</octave></pitch><duration>8</duration></note><note><chord/><pitch><step>G</step><octave>4</octave></pitch><duration>8</duration></note></measure>
+<measure number="2"><note><rest/><duration>4</duration></note><note><grace/><pitch><step>D</step><octave>5</octave></pitch></note><note><pitch><step>D</step><octave>5</octave></pitch><duration>4</duration></note><barline><repeat direction="backward"/></barline></measure></part>
+<part id="P2"><measure number="1"><attributes><divisions>1</divisions></attributes><note><unpitched><display-step>C</display-step><display-octave>5</display-octave></unpitched><duration>4</duration></note></measure></part></score-partwise>`;
+  try{
+    await new Promise(r=>{frame.onload=r;frame.src='../tools/sound-lab/index.html';});w=frame.contentWindow;d=w.document;
+    for(const k of KEYS)saved[k]=w.localStorage.getItem(k);
+    w.addEventListener('error',e=>errors.push(e.message));w.addEventListener('unhandledrejection',e=>errors.push(String(e.reason)));
+    w.HTMLAnchorElement.prototype.click=function(){downloads.push({url:this.href,name:this.download});};
+    w.print=()=>downloads.push({url:'data:,',name:'print'});
+    await wait(300);
+
+    const renderer=$('renderer').textContent;assert(renderer.includes('WEBGL')||renderer.includes('2D PREVIEW'),'Renderer initializes: '+renderer);
+    if(location.search.includes('webgl'))assert(renderer.includes('THREE.JS'),'Three.js WebGL renderer is active');
+    assert(d.querySelectorAll('[data-family]').length===4,'Four instrument families');
+    assert($('preset').querySelectorAll('option').length===20,'19 presets plus custom');
+
+    // Calibration round trip: detune, check the tuner, calibrate back.
+    change('preset','acoustic-guitar');assert($('noteName').textContent==='E2','Guitar preset predicts E2');
+    change('p-tension',90);assert(Math.abs(w.Lab.analysis.target.cents)>10,'Raising tension detunes');assert($('calibrateStatus').textContent.includes('Not calibrated'),'Status reports detuning');
+    $('calibrate').click();assert(Math.abs(w.Lab.analysis.target.cents)<.01,'Calibrate restores target pitch');assert($('calibrateStatus').textContent.includes('Solved string tension'),'Calibration explains the solved field');
+    change('targetNote','F#2');$('calibrate').click();assert($('noteName').textContent==='F♯2','Retarget to F#2');
+    change('tuneBy','length');change('targetNote','G2');$('calibrate').click();assert(Math.abs(w.Lab.analysis.target.cents)<.01&&w.Lab.config.params.length<.645,'Calibrate by length shortens the string');
+    $('undo').click();assert(w.Lab.config.params.length===.645||Math.abs(w.Lab.config.params.length-.645)<1e-9,'Undo restores the previous length');$('redo').click();
+    change('targetNote','H2');assert($('targetNote').value!=='H2','Invalid note is rejected');
+
+    // Material and slider changes flow into the prediction.
+    const before=w.Lab.analysis.f0;change('p-material','nylon');assert(w.Lab.analysis.f0>before*1.5,'Lighter string material raises pitch at the same tension');
+    const slider=d.querySelector('[data-slider="length"]');slider.value=+slider.value+60;slider.dispatchEvent(new w.Event('input',{bubbles:true}));assert(+$('p-length').value>.645,'Log slider updates the numeric field');
+
+    // Families, bars and drums.
+    change('preset','marimba');assert(!$('overtoneBox').hidden,'Overtone tuning appears for bars');
+    change('p-undercut',2,'change');assert(w.Lab.analysis.metrics[0][1]<3.5,'Shallow undercut lowers overtone ratio');
+    $('tuneOvertone').click();assert(Math.abs(w.Lab.analysis.metrics[0][1]-4)<.01&&Math.abs(w.Lab.analysis.target.cents)<.01,'Undercut solve restores 1:4 in tune');
+    d.querySelector('[data-family="membrane"]').click();assert(w.Lab.config.family==='membrane'&&$('letRing').checked,'Drum family loads with ringing notes');
+    d.querySelector('[data-family="air"]').click();assert($('p-ends'),'Air column controls render');
+
+    // Keyboard and audio.
+    change('preset','flute');const key=d.querySelector('.key:not(.out)');key.dispatchEvent(new w.PointerEvent('pointerdown',{bubbles:true,pointerId:1}));key.dispatchEvent(new w.PointerEvent('pointerup',{bubbles:true,pointerId:1}));
+    assert($('keyInfo').textContent.includes('sounding tube'),'Key press reports the solved tube length');assert(w.Lab.audio.ctx,'Audio context starts on first note');
+    assert(d.querySelectorAll('.key.out').length>0,'Keys outside the flute range are dimmed');
+    $('testTone').click();$('stopAll').click();
+
+    // Scores: MusicXML with parts, transposition, ties, chords, backup, grace notes and percussion.
+    change('preset','violin');
+    let toast=await upload('scoreFile','test.musicxml',MUSICXML,'application/xml');assert(toast.includes('Loaded'),'MusicXML loads: '+toast);
+    const s=w.LabScore.score;assert(s.title==='Two part test'&&s.tempo===90,'MusicXML title and tempo');
+    assert(JSON.stringify(s.notes.filter(n=>n.part==='P1').map(n=>n.midi))===JSON.stringify([58,65,70,73,72]),'Transposed pitches, chord and tie: '+s.notes.map(n=>n.midi));
+    const tied=s.notes.find(n=>n.midi===73);assert(Math.abs(tied.d-2)<1e-9,'Tied note spans three beats at 90 BPM');
+    assert(s.warnings.some(x=>x.includes('Repeat'))&&s.warnings.some(x=>x.includes('unpitched'))&&s.warnings.some(x=>x.includes('grace')),'MusicXML limitations are reported');
+    change('scorePart','P1');assert(w.LabScore.fitted.length===5,'Part filter selects the melody');
+    change('rangePolicy','skip');assert(d.getElementById('fitStats').textContent.includes('skipped'),'Violin skips notes below G3');
+    change('rangePolicy','octave');assert(w.LabScore.fitted.every(n=>n.play>=55),'Octave folding lifts low notes into range');
+    change('transpose',12);assert(w.LabScore.fitted[0].midi===70,'Transpose shifts written pitches');change('transpose',0);
+
+    toast=await upload('scoreFile','test.mxl',await zip([['META-INF/container.xml','<container><rootfiles><rootfile full-path="s.musicxml"/></rootfiles></container>',8],['s.musicxml',MUSICXML,8]]),'application/vnd.recordare.musicxml');
+    assert(toast.includes('Loaded')&&w.LabScore.score.title==='Two part test','Compressed .mxl loads: '+toast);
+    toast=await upload('scoreFile','broken.mid',new Uint8Array([77,84,104,100,0]),'audio/midi');assert(toast.includes('Could not read'),'Corrupt MIDI shows an error');
+
+    d.querySelector('[data-sample="greensleeves"]').click();await wait(200);assert(w.LabScore.score.format==='ABC'&&w.LabScore.score.notes.length===38,'ABC sample loads');
+    $('scoreText').value='tempo 240\nG4 A4 B4 [G4 B4 D5]*2';$('applyText').click();await wait(200);assert(w.LabScore.score.notes.length===6,'Typed notes load');
+    change('tempoScale',50);assert(Math.abs(w.LabScore.fitted.at(-1).t-1.5)<1e-9,'Half tempo doubles note times (beat 3 at 240 BPM: 0.75 s → 1.5 s)');change('tempoScale',100);
+
+    $('playScore').click();for(let i=0;i<400&&$('playScore').textContent.includes('Rendering');i++)await wait(25);await wait(500);
+    assert(!$('stopScore').disabled,'Score playback starts');$('stopScore').click();assert($('stopScore').disabled,'Stop ends playback');
+
+    // Exports.
+    const json=JSON.parse(await(await exported('exportJSON')).blob.text());assert(json.config.name===w.Lab.config.name&&json.prediction.partials.length>0,'JSON has settings and prediction');
+    assert((await(await exported('exportCSV')).blob.text()).includes('frequency_hz'),'CSV partials export');
+    assert((await(await exported('exportTXT')).blob.text()).includes('PARTIALS'),'TXT report export');
+    const svg=await(await exported('exportSVG')).blob.text();assert(svg.startsWith('<svg')&&new w.DOMParser().parseFromString(svg,'image/svg+xml').getElementsByTagName('parsererror').length===0,'SVG sheet is well-formed');
+    const png=await exported('exportPNG');assert(png.blob.type==='image/png'&&png.blob.size>10000,'PNG sheet export');
+    const shot=await exported('exportScene');assert(shot.blob.size>2000,'3D snapshot export');
+    const wav=new Uint8Array(await(await exported('exportToneWAV')).blob.arrayBuffer());assert(new TextDecoder().decode(wav.subarray(8,12))==='WAVE'&&wav.length>44100,'Test tone WAV export');
+    const score=new Uint8Array(await(await exported('exportScoreWAV')).blob.arrayBuffer());assert(score.length>wav.length/2,'Score WAV export');
+    const midi=new Uint8Array(await(await exported('exportMIDI')).blob.arrayBuffer());assert(w.ScoreParser.parseMidi(midi).notes.length===6,'MIDI as played re-imports');
+    $('printSheet').click();assert(downloads.at(-1).name==='print'&&$('printArea').querySelector('svg table, table'),'Print sheet is prepared');
+
+    // Saving and importing instruments.
+    change('instrumentName','Workshop violin');$('save').click();assert(JSON.parse(w.localStorage.getItem('bt-sound-instruments'))[0].name==='Workshop violin','Instrument saved locally');
+    change('preset','snare');toast=await upload('importInstrument','v.json',JSON.stringify(json),'application/json');assert(w.Lab.config.family==='string'&&w.Lab.config.params.material===json.config.params.material,'JSON import restores the instrument: '+toast);
+    const bad={...json,config:{...json.config,params:{...json.config.params,tension:-5}}};toast=await upload('importInstrument','bad.json',JSON.stringify(bad),'application/json');assert(toast.includes('Invalid'),'Invalid JSON is rejected');
+
+    assert(errors.length===0,'No runtime errors ('+errors.join(' | ')+')');
+    document.getElementById('results').textContent=lines.join('\n')+'\nALL TESTS PASSED ('+lines.length+')';document.title='PASS — Sound lab tests';
+  }catch(e){document.getElementById('results').textContent=lines.join('\n')+'\nFAIL '+e.message+'\n'+e.stack;document.title='FAIL — Sound lab tests';}
+  finally{if(w)for(const k of KEYS){if(saved[k]===null||saved[k]===undefined)w.localStorage.removeItem(k);else w.localStorage.setItem(k,saved[k]);}}
+})();
+</script></body></html>

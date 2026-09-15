@@ -64,12 +64,25 @@ tools/
     paint-library.js                60 original color mixing references
     paint-mixer.js                  editor, batch scaling and recipe exports
     paint-mixer.css                 paint studio layout and print stylesheet
+  sound-lab/
+    index.html                      instrument calibration, 3D view, keyboard and score player
+    sound-model.js                  physics: strings, air columns, bar FEM, membranes; calibration
+    sound-synth.js                  modal synthesis, score mixing and WAV encoding
+    score-parser.js                 MIDI, MusicXML/.mxl, ABC and text readers; MIDI writer
+    sound-scene.js                  Three.js instrument scenes with a Canvas 2D fallback
+    sound-lab.js                    controls, readouts, spectrum, keyboard and audio
+    sound-score.js                  score fitting, playback, piano roll and exports
+    sound-lab.css                   dark lab layout and print stylesheet
+    vendor/three.min.js             Three.js r149 (MIT), vendored so the tool works offline
+    vendor/three-LICENSE.txt        Three.js licence
   design-studio.css                 shared responsive design-tool styles
   studio-common.js                  shared local utilities
 tests/
   studio-smoke.html                 browser integration and export checks
   paint-model.test.cjs              paint arithmetic and validation checks
   paint-browser.html                paint editor, 3D and export integration checks
+  sound-model.test.cjs              sound physics, parser and synthesis checks
+  sound-browser.html                sound lab calibration, score, audio and export checks
 ```
 
 ---
@@ -210,6 +223,69 @@ The browser test page checks conversion/contrast math, editing and undo/redo, im
 every pattern's SVG rendering, deterministic seeds, downloads and PNG pixels, mobile
 overflow, and dashboard routes. Downloads are intercepted by the tests. Test saves
 are restored afterward so existing saved creations remain intact.
+
+---
+
+# Tool: Sound Lab
+
+**Page:** [`tools/sound-lab/index.html`](tools/sound-lab/index.html)
+
+Calibrate an instrument from its materials, dimensions and adjustments, hear the predicted
+sound, and play sheet music on it.
+
+- **Four instrument families, 19 calibrated presets.** Strings (steel-string and classical
+  guitar, ukulele, violin, cello, piano), air columns (flute, clarinet, open and stopped organ
+  pipes, pan flute), mallet bars (marimba, xylophone, vibraphone, glockenspiel) and drums
+  (timpani, floor tom, snare, frame drum).
+- **Materials and dimensions drive the physics.** String material, diameter, length and
+  tension; body wood and size; tube wall, bore, length and end type; bar material, length,
+  width, thickness and undercut; head material, diameter, thickness, tension and shell depth;
+  plus excitation, strike point, hardness, vibrato, air temperature and humidity.
+- **Calibration.** Choose a target note and A4 reference (400–480 Hz) and solve any tuning
+  field — tension, length, diameter, temperature, thickness. A tuner shows the offset in
+  cents. Bars can also solve the undercut for 1 : 4 (marimba) or 1 : 3 (xylophone) overtone
+  tuning, then re-solve pitch. Limits are reported when a target is unreachable.
+- **Predicted sound.** Every partial's frequency, level and T60 decay, spectral centroid,
+  inharmonicity, playable range, derived quantities (string stress vs breaking strength,
+  Helmholtz and plate resonances, end correction, bar mass and support node, resonator tube
+  length, drum mode ratios) and physical-sanity warnings.
+- **3D view (Three.js).** Each family has its own scene showing the vibration in slow motion
+  from the predicted mode shapes: the string and active fret, pressure particles in the tube,
+  the bending undercut bar with nodal markers, the drum head coloured by displacement. Pick a
+  single mode to isolate it. A Canvas 2D view is used when WebGL is unavailable.
+- **Play it.** An on-screen and computer keyboard re-solves the physics for each note —
+  fretting, sounding-tube length, a new bar, or head tension — and dims keys outside the
+  playable range. Velocity, hold, volume and let-ring controls; live waveform and spectrum.
+- **Sheet music.** Upload or drop Standard MIDI (`.mid`), MusicXML (`.musicxml`, `.xml`,
+  compressed `.mxl`), ABC (`.abc`) or a plain note list (`C4 E4/2 [C4 E4 G4]*2`, or CSV rows
+  `start,beats,note`). Choose a part, tempo and transposition, and whether out-of-range notes
+  fold by octaves, are skipped, or are extrapolated. A piano roll shows the fitted notes;
+  click it to play from that point. Four built-in samples are included.
+- **Exports.** Instrument JSON (re-importable, includes the prediction), partials CSV
+  (formula-safe), TXT report, SVG and PNG calibration sheets, 3D snapshot PNG, Print / PDF,
+  WAV test tone, WAV of the whole score, and MIDI "as played" after range fitting and
+  transposition. Audio renders deterministically: the same settings give the same file.
+- Instruments are saved in this browser (up to 40) and restored on the next visit.
+
+**Accuracy.** Pitch uses textbook physics: Mersenne's law with stiffness inharmonicity for
+strings, Levine–Schwinger end-corrected air columns, a finite-element Euler–Bernoulli bar
+with a Timoshenko shear correction (within 0.1% of the analytic free–free ratios), and Bessel
+modes for membranes. Decay rates, body resonances, excitation spectra and drum air loading are
+simplified or empirical; material constants are typical values, not certified data. Real
+instruments differ through construction details, coupling, technique and the room, so measure
+and compare before cutting wood or ordering strings. MusicXML repeats, grace notes and
+unpitched percussion are skipped with a warning; ABC plays its first voice only.
+
+**Dependencies.** Three.js r149 (MIT) is vendored in `tools/sound-lab/vendor/` rather than
+loaded from a CDN, so the tool keeps the repository's offline, open-from-disk behaviour
+(r149 is the last release with a classic script build, which works over `file://`).
+Everything else is local; no audio or scores are uploaded.
+
+**Checks.** Run `node tests/sound-model.test.cjs` (physics against analytic results,
+calibration of every preset, parsers, MIDI round trips, rendered pitch and WAV encoding),
+then open `http://127.0.0.1:8765/tests/sound-browser.html` with the local server running.
+Add `?webgl` to require the Three.js renderer. Downloads are intercepted and saved
+instruments are restored after testing.
 
 ---
 

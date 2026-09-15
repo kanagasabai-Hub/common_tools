@@ -20,6 +20,16 @@
 
 window.TOOLS = [
   {
+    id: 'sound-lab',
+    name: 'Sound Lab',
+    description: 'Calibrate strings, pipes, mallet bars and drums from their materials and dimensions, hear the physically predicted sound in 3D, play uploaded MIDI, MusicXML or ABC scores on it, and export WAV, MIDI, JSON, CSV and calibration sheets.',
+    href: 'tools/sound-lab/index.html',
+    icon: '🎻',
+    tags: ['audio', 'music', 'physics', '3d', 'midi', 'wav'],
+    status: 'live',
+    updated: '2026-09-15'
+  },
+  {
     id: 'paint-mixer',
     name: 'Paint Mixing Studio',
     description: 'Explore 60 paint recipes with animated 3D mixing, playback up to 64×, five mixing motions, and liquid dilution/body controls. Export CSV, JSON, PNG, SVG or printable sheets.',
